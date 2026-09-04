@@ -1,0 +1,127 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 배경: 딥 다크 인디고 네이비 -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bg_grad)"/>
+
+  <!-- 방사형 AI 퀀트 신경망 링 -->
+  <circle cx="512" cy="460" r="360" stroke="url(#ring_aura)" stroke-width="8" stroke-dasharray="24 14" opacity="0.5"/>
+  <circle cx="512" cy="460" r="280" stroke="#38BDF8" stroke-width="4" opacity="0.3"/>
+
+  <!-- 5가지 로또 공 색상 궤도 연결선 -->
+  <path d="M 230 460 A 282 282 0 1 1 794 460 A 282 282 0 1 1 230 460" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="6" stroke-dasharray="12 12"/>
+
+  <!-- 1. 노란색 공 (1~10번 구간) - 좌상단 -->
+  <g transform="translate(250, 260)" filter="drop-shadow(0px 8px 16px rgba(245, 158, 11, 0.5))">
+    <circle cx="0" cy="0" r="54" fill="url(#ball_yellow)"/>
+    <circle cx="-16" cy="-18" r="32" fill="#FFF" opacity="0.6"/>
+    <text x="0" y="16" font-family="Impact, Arial Black" font-size="46" font-weight="900" fill="#78350F" text-anchor="middle">7</text>
+  </g>
+
+  <!-- 2. 파란색 공 (11~20번 구간) - 우상단 -->
+  <g transform="translate(774, 260)" filter="drop-shadow(0px 8px 16px rgba(37, 99, 235, 0.5))">
+    <circle cx="0" cy="0" r="54" fill="url(#ball_blue)"/>
+    <circle cx="-16" cy="-18" r="32" fill="#FFF" opacity="0.6"/>
+    <text x="0" y="16" font-family="Impact, Arial Black" font-size="46" font-weight="900" fill="#FFF" text-anchor="middle">13</text>
+  </g>
+
+  <!-- 3. 빨간색 공 (21~30번 구간) - 우하단 -->
+  <g transform="translate(814, 580)" filter="drop-shadow(0px 8px 16px rgba(225, 29, 72, 0.5))">
+    <circle cx="0" cy="0" r="54" fill="url(#ball_red)"/>
+    <circle cx="-16" cy="-18" r="32" fill="#FFF" opacity="0.6"/>
+    <text x="0" y="16" font-family="Impact, Arial Black" font-size="46" font-weight="900" fill="#FFF" text-anchor="middle">22</text>
+  </g>
+
+  <!-- 4. 회색/검정 공 (31~40번 구간) - 하단 좌 -->
+  <g transform="translate(210, 580)" filter="drop-shadow(0px 8px 16px rgba(71, 85, 105, 0.6))">
+    <circle cx="0" cy="0" r="54" fill="url(#ball_gray)"/>
+    <circle cx="-16" cy="-18" r="32" fill="#FFF" opacity="0.5"/>
+    <text x="0" y="16" font-family="Impact, Arial Black" font-size="46" font-weight="900" fill="#FFF" text-anchor="middle">33</text>
+  </g>
+
+  <!-- 5. 초록색 공 (41~45번 구간) - 중앙 상단 -->
+  <g transform="translate(512, 165)" filter="drop-shadow(0px 8px 16px rgba(16, 185, 129, 0.5))">
+    <circle cx="0" cy="0" r="50" fill="url(#ball_green)"/>
+    <circle cx="-14" cy="-16" r="30" fill="#FFF" opacity="0.6"/>
+    <text x="0" y="15" font-family="Impact, Arial Black" font-size="42" font-weight="900" fill="#FFF" text-anchor="middle">43</text>
+  </g>
+
+  <!-- 중앙 1등 메인 3D 골드 로또 공 -->
+  <circle cx="512" cy="490" r="190" fill="url(#ball_gold_main)" filter="drop-shadow(0px 20px 40px rgba(0,0,0,0.65))"/>
+  <circle cx="455" cy="410" r="130" fill="url(#ball_highlight)" opacity="0.75"/>
+
+  <!-- 1등 메인 텍스트 -->
+  <text x="512" y="560" font-family="Impact, Arial Black, sans-serif" font-size="180" font-weight="900" fill="#0F172A" text-anchor="middle">1등</text>
+
+  <!-- 하단 비비드 AI 로또 분석기 뱃지 -->
+  <rect x="252" y="780" width="520" height="90" rx="45" fill="url(#badge_grad)" stroke="#FBBF24" stroke-width="5" filter="drop-shadow(0px 10px 20px rgba(37, 99, 235, 0.5))"/>
+  <text x="512" y="842" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="4">AI 로또 분석기</text>
+
+  <defs>
+    <linearGradient id="bg_grad" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B0F19"/>
+      <stop offset="0.5" stop-color="#1E293B"/>
+      <stop offset="1" stop-color="#0B132B"/>
+    </linearGradient>
+
+    <linearGradient id="ring_aura" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F59E0B"/>
+      <stop offset="0.3" stop-color="#2563EB"/>
+      <stop offset="0.6" stop-color="#E11D48"/>
+      <stop offset="0.8" stop-color="#475569"/>
+      <stop offset="1" stop-color="#10B981"/>
+    </linearGradient>
+
+    <!-- 1. 노란색 (1~10) -->
+    <radialGradient id="ball_yellow" cx="35%" cy="35%" r="65%">
+      <stop stop-color="#FDE047"/>
+      <stop offset="0.6" stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#D97706"/>
+    </radialGradient>
+
+    <!-- 2. 파란색 (11~20) -->
+    <radialGradient id="ball_blue" cx="35%" cy="35%" r="65%">
+      <stop stop-color="#60A5FA"/>
+      <stop offset="0.6" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#1E40AF"/>
+    </radialGradient>
+
+    <!-- 3. 빨간색 (21~30) -->
+    <radialGradient id="ball_red" cx="35%" cy="35%" r="65%">
+      <stop stop-color="#F87171"/>
+      <stop offset="0.6" stop-color="#E11D48"/>
+      <stop offset="1" stop-color="#9F1239"/>
+    </radialGradient>
+
+    <!-- 4. 회색/검정 (31~40) -->
+    <radialGradient id="ball_gray" cx="35%" cy="35%" r="65%">
+      <stop stop-color="#94A3B8"/>
+      <stop offset="0.6" stop-color="#475569"/>
+      <stop offset="1" stop-color="#1E293B"/>
+    </radialGradient>
+
+    <!-- 5. 초록색 (41~45) -->
+    <radialGradient id="ball_green" cx="35%" cy="35%" r="65%">
+      <stop stop-color="#34D399"/>
+      <stop offset="0.6" stop-color="#10B981"/>
+      <stop offset="1" stop-color="#065F46"/>
+    </radialGradient>
+
+    <!-- 중앙 1등 골드 메인 공 -->
+    <radialGradient id="ball_gold_main" cx="35%" cy="35%" r="65%">
+      <stop stop-color="#FEF08A"/>
+      <stop offset="0.5" stop-color="#F59E0B"/>
+      <stop offset="0.85" stop-color="#D97706"/>
+      <stop offset="1" stop-color="#78350F"/>
+    </radialGradient>
+
+    <radialGradient id="ball_highlight" cx="50%" cy="50%" r="50%">
+      <stop stop-color="#FFFFFF" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="badge_grad" x1="252" y1="780" x2="772" y2="870" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB"/>
+      <stop offset="0.5" stop-color="#4F46E5"/>
+      <stop offset="1" stop-color="#E11D48"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -11,12 +11,20 @@ import { ResultScreen } from './src/screens/ResultScreen';
 import { VisualizationScreen } from './src/screens/VisualizationScreen';
 import { AdMobBanner } from './src/components/AdMobBanner';
 import { COLORS } from './src/constants/theme';
+import { loadAndShowAppOpenAd, preloadInterstitialAd } from './src/services/adMobService';
 import { Home, BarChart2, Award, PieChart } from 'lucide-react-native';
 
 const Tab = createBottomTabNavigator();
 
 function MainNavigation() {
   const { isDarkMode } = useLotto();
+
+  useEffect(() => {
+    // 1. 앱 시작 시 앱 오프닝 광고(App Open Ad) 로드 및 표시
+    loadAndShowAppOpenAd();
+    // 2. 전면 광고(Interstitial Ad) 백그라운드 사전 준비
+    preloadInterstitialAd();
+  }, []);
 
   const headerBg = isDarkMode ? '#0F172A' : COLORS.cardBg;
   const headerBorder = isDarkMode ? '#334155' : COLORS.border;

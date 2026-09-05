@@ -4,12 +4,14 @@ import {
   Text, 
   TouchableOpacity, 
   ScrollView, 
-  StyleSheet 
+  StyleSheet,
+  Platform 
 } from 'react-native';
 import { useLotto } from '../context/LottoContext';
 import { LottoBall } from '../components/LottoBall';
 import { AiAnalysisBridgeModal } from '../components/AiAnalysisBridgeModal';
 import { AdMobInterstitialModal } from '../components/AdMobInterstitialModal';
+import { showInterstitialAd as showNativeInterstitialAd } from '../services/adMobService';
 import { 
   ManualInputModal, 
   FilterSettingModal, 
@@ -56,12 +58,18 @@ export const HomeScreen: React.FC = ({ navigation }: any) => {
 
   const totalDbCount = getOfflineDbCount();
 
-  // '번호 발생' 터치 시 즉시 결과를 보여주지 않고 전면 광고를 먼저 띄움!
+  // '번호 발생' 터치 시 구글 네이티브 전면 광고 송출 후 결과 화면 이동
   const handleGenerateNumbers = () => {
-    setShowInterstitialAd(true);
+    if (Platform.OS === 'web') {
+      setShowInterstitialAd(true);
+    } else {
+      showNativeInterstitialAd(() => {
+        setShowBridgeModal(true);
+      });
+    }
   };
 
-  // 전면 광고 시청 후 '닫기(X)'를 눌렀을 때 실행되는 콜백
+  // 웹 환경에서 모달 전면 광고 시청 후 '닫기(X)'를 눌렀을 때 실행되는 콜백
   const handleAdCloseAndNavigate = () => {
     setShowInterstitialAd(false);
     // AI 분석 브릿지 연출 가동 후 결과 화면 이동

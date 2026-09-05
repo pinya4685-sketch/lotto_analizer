@@ -55,3 +55,19 @@ lotto_analizer/
    - `expo-build-properties`에서 `kotlinVersion: 2.1.20`을 설정하여 Expo SDK 57의 `io.github.lukmccall.pika:pika-compiler:0.3.2-2.1.20` 결합 의존성 오류(pika-compiler:0.3.2-2.1.21 부재)를 완전히 해결
    - `androidx.core:core:1.17.0`의 AAR 요구사항에 맞추어 `compileSdkVersion: 36`, `buildToolsVersion: 36.0.0`으로 설정 (targetSdkVersion은 35 유지)
    - 비표준 Gradle 치환 플러그인을 제거하고 Expo Managed Workflow 표준 파이프라인으로 복원
+
+---
+
+## 5. 구글 애드몹(AdMob) 3종 광고 아키텍처
+1. **배너 광고 (`BannerAd`)**:
+   - 앱의 모든 탭 화면 최하단에 항상 고정되는 `ANCHORED_ADAPTIVE_BANNER`
+   - 웹 브라우저 크래시 방지용 가상 배너 및 네이티브 로드 실패 대응 폴백 완비
+2. **전면 광고 (`InterstitialAd`)**:
+   - 메인 대시보드에서 `[번호 발생]` 터치 시 백그라운드에서 사전 로드(`preloadInterstitialAd`)된 전면 광고 송출
+   - 광고 시청 완료 또는 에러 시 안전하게 분석 브릿지 연출 및 결과 화면으로 이동
+3. **앱 오프닝 광고 (`AppOpenAd`)**:
+   - 앱 최초 구동 시 메인 네비게이션 진입 직전 오프닝 전면 광고 로드 및 송출
+4. **테스트 / 출시 모드 전환 체계 (`USE_TEST_ADS`)**:
+   - 구글 AdMob 계정의 본인인증 미완료 / 스토어 앱 미등록 상태에서는 구글 정책상 실제 광고 단위 ID로 광고가 서빙되지 않고 `ERROR_CODE_NO_FILL`이 반환됨.
+   - 따라서 테스트 기기 및 에뮬레이터에서 정상 송출을 확인할 수 있도록 `USE_TEST_ADS: true`를 기본 활성화하여 공식 구글 테스트 광고로 동작하게 하고, 정식 승인 후 `false`로 손쉽게 실제 광고로 전환하도록 구현.
+

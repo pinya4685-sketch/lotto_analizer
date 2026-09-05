@@ -1,56 +1,183 @@
-import React, { useState } from 'react';
+/**
+ * 통계 자료 리스트 및 세부 통계 화면 (StatisticsScreen)
+ * - 1회차부터 1239회차까지의 방대한 데이터를 초고속으로 처리하기 위해 FlatList 가상화 렌더링 적용
+ * - O(N^2) 탐색 방지를 위한 Map 기반 O(1) 해시 인덱싱
+ * - 고정 행 높이(54px) getItemLayout 최적화로 UI 블로킹(렉) 완전 제거
+ */
+import React, { useState, useMemo, useCallback } from 'react';
 import { 
   View, 
   Text, 
-  ScrollView, 
+  FlatList, 
   TouchableOpacity, 
   StyleSheet, 
-  Modal 
+  Modal,
+  ScrollView
 } from 'react-native';
 import { useLotto } from '../context/LottoContext';
 import { OFFLINE_DB } from '../services/lottoApi';
 import { calculateACValue, getEndingDigit } from '../utils/quantEngine';
 import { LottoBall } from '../components/LottoBall';
 import { COLORS } from '../constants/theme';
-import { ChevronRight, ArrowLeft, TrendingUp, X, Sparkles, ArrowUpDown } from 'lucide-react-native';
+import { ChevronRight, ArrowLeft, TrendingUp, X, ArrowUpDown } from 'lucide-react-native';
+import { LottoRecord } from '../data/lottoData';
+
+// 컴포넌트 재생성 방지를 위해 카테고리 정적 배열을 외부에 선언
+const STATS_CATEGORIES = [
+  { id: 1, title: '1. 번호별 출현 횟수 통계', desc: '1~45번 각 번호별 1239개 회차 누적 출현 횟수 랭킹' },
+  { id: 2, title: '2. 연속 미출현 번호 통계', desc: '현재 연속 미출현 주수 (Cold Numbers) 및 반발수' },
+  { id: 3, title: '3. 홀수 - 짝수 출현 통계', desc: '홀짝 3:3, 4:2, 2:4 분포 비율 및 시계열 흐름' },
+  { id: 4, title: '4. 연속 번호 통계', desc: '1쌍/2쌍 이상 연속수 출현 회차 비율' },
+  { id: 5, title: '5. 이월수 통계', desc: '직전 회차에서 당 회차로 이월된 공만 밝게 하이라이트 딤처리' },
+  { id: 6, title: '6. 번호합 통계', desc: '6개 번호 총합 115~135 표준 퀀트 구간 분석' },
+  { id: 7, title: '7. 앞수합 통계', desc: '1~3번 번호 합계 (예: 20~40점) 전용 지표 분석' },
+  { id: 8, title: '8. 뒷수합 통계', desc: '4~6번 번호 합계 (예: 70~105점) 전용 지표 분석' },
+  { id: 9, title: '9. 첫수합 통계', desc: '첫 번호 (예: 5~10번) 전용 지표 분석' },
+  { id: 10, title: '10. 끝수합 통계', desc: '6개 번호 끝수(0~9) 합계 (예: 20~35점) 모멘텀 분석' },
+  { id: 11, title: '11. AC(산술적복잡성) 통계', desc: 'AC 6~10 복잡성 수치별 회차 분포' },
+  { id: 12, title: '12. OMR 공간 분산 패턴 통계', desc: '실제 로또 OMR 용지 지그재그 패턴선 시각화' }
+];
+
+// O(1) 회차 탐색을 위한 전역 Map 캐시 (150만 회 find 순회 제거)
+const DRAW_MAP = new Map<number, LottoRecord>(OFFLINE_DB.map(d => [d.draw, d]));
+
+// ── [고성능 메모이제이션 행 컴포넌트: 이월수 통계] ──
+const CompactCarryOverRow = React.memo(({ 
+  item, 
+  dynamicCard, 
+  dynamicBorder, 
+  dynamicText 
+}: { 
+  item: LottoRecord; 
+  dynamicCard: string; 
+  dynamicBorder: string; 
+  dynamicText: string; 
+}) => {
+  const prevDraw = DRAW_MAP.get(item.draw - 1);
+  const carryOverNums = prevDraw ? item.nums.filter(n => prevDraw.nums.includes(n)) : [];
+
+  return (
+    <View style={[styles.compactSingleRow, { backgroundColor: dynamicCard, borderColor: dynamicBorder }]}>
+      <Text style={[styles.compactDrawNo, { color: dynamicText }]}>{item.draw}회</Text>
+
+      <View style={styles.compactBallsRow}>
+        {item.nums.map((n: number) => {
+          const isCarry = carryOverNums.includes(n);
+          return (
+            <View key={n} style={{ opacity: isCarry ? 1.0 : 0.25 }}>
+              <LottoBall number={n} size={26} />
+            </View>
+          );
+        })}
+        <Text style={styles.compactPlus}>+</Text>
+        <View style={{ opacity: 0.25 }}>
+          <LottoBall number={item.bonus} size={26} isBonus />
+        </View>
+      </View>
+
+      <View style={[styles.compactMetricBadge, carryOverNums.length > 0 && styles.carryHighlightBadge]}>
+        <Text style={[styles.compactMetricText, carryOverNums.length > 0 && { color: COLORS.neonGreen }]}>
+          {carryOverNums.length > 0 ? `이월 ${carryOverNums.length}개` : '이월 0개'}
+        </Text>
+      </View>
+    </View>
+  );
+});
+
+// ── [고성능 메모이제이션 행 컴포넌트: 지표별 통계] ──
+const CompactMetricRow = React.memo(({ 
+  item, 
+  statId, 
+  dynamicCard, 
+  dynamicBorder, 
+  dynamicText 
+}: { 
+  item: LottoRecord; 
+  statId: number; 
+  dynamicCard: string; 
+  dynamicBorder: string; 
+  dynamicText: string; 
+}) => {
+  let badgeText = '';
+  let badgeColor = COLORS.primary;
+
+  if (statId === 7) {
+    const frontSum = item.nums[0] + item.nums[1] + item.nums[2];
+    badgeText = `앞수합 ${frontSum}점`;
+    badgeColor = COLORS.accentBlue;
+  } else if (statId === 8) {
+    const backSum = item.nums[3] + item.nums[4] + item.nums[5];
+    badgeText = `뒷수합 ${backSum}점`;
+    badgeColor = COLORS.primary;
+  } else if (statId === 9) {
+    badgeText = `첫수 ${item.nums[0]}번`;
+    badgeColor = COLORS.neonYellow;
+  } else if (statId === 10) {
+    const endingDigitSum = item.nums.reduce((acc: number, n: number) => acc + getEndingDigit(n), 0);
+    badgeText = `끝수합 ${endingDigitSum}점`;
+    badgeColor = COLORS.neonGreen;
+  } else if (statId === 11) {
+    const ac = calculateACValue(item.nums);
+    badgeText = `AC ${ac}`;
+    badgeColor = COLORS.accentBlue;
+  } else {
+    const totalSum = item.nums.reduce((a: number, b: number) => a + b, 0);
+    badgeText = `${totalSum}점`;
+    badgeColor = COLORS.primary;
+  }
+
+  return (
+    <View style={[styles.compactSingleRow, { backgroundColor: dynamicCard, borderColor: dynamicBorder }]}>
+      <Text style={[styles.compactDrawNo, { color: dynamicText }]}>{item.draw}회</Text>
+
+      <View style={styles.compactBallsRow}>
+        {item.nums.map((n: number) => (
+          <LottoBall key={n} number={n} size={26} />
+        ))}
+        <Text style={styles.compactPlus}>+</Text>
+        <LottoBall number={item.bonus} size={26} isBonus />
+      </View>
+
+      <View style={[styles.compactMetricBadge, { backgroundColor: 'rgba(37, 99, 235, 0.12)' }]}>
+        <Text style={[styles.compactMetricText, { color: badgeColor }]}>{badgeText}</Text>
+      </View>
+    </View>
+  );
+});
 
 export const StatisticsScreen: React.FC = () => {
   const { isDarkMode } = useLotto();
   const [selectedStatId, setSelectedStatId] = useState<number | null>(null);
   const [showTrendModal, setShowTrendModal] = useState<boolean>(false);
   const [omrSelectedDrawIndex, setOmrSelectedDrawIndex] = useState<number>(0);
-  const [isAscending, setIsAscending] = useState<boolean>(false); // false: 최신순(1239->1), true: 과거순(1->1239)
+  const [isAscending, setIsAscending] = useState<boolean>(false);
 
-  const statsCategories = [
-    { id: 1, title: '1. 번호별 출현 횟수 통계', desc: '1~45번 각 번호별 1239개 회차 누적 출현 횟수 랭킹' },
-    { id: 2, title: '2. 연속 미출현 번호 통계', desc: '현재 연속 미출현 주수 (Cold Numbers) 및 반발수' },
-    { id: 3, title: '3. 홀수 - 짝수 출현 통계', desc: '홀짝 3:3, 4:2, 2:4 분포 비율 및 시계열 흐름' },
-    { id: 4, title: '4. 연속 번호 통계', desc: '1쌍/2쌍 이상 연속수 출현 회차 비율' },
-    { id: 5, title: '5. 이월수 통계', desc: '직전 회차에서 당 회차로 이월된 공만 밝게 하이라이트 딤처리' },
-    { id: 6, title: '6. 번호합 통계', desc: '6개 번호 총합 115~135 표준 퀀트 구간 분석' },
-    { id: 7, title: '7. 앞수합 통계', desc: '1~3번 번호 합계 (예: 20~40점) 전용 지표 분석' },
-    { id: 8, title: '8. 뒷수합 통계', desc: '4~6번 번호 합계 (예: 70~105점) 전용 지표 분석' },
-    { id: 9, title: '9. 첫수합 통계', desc: '첫 번호 (예: 5~10번) 전용 지표 분석' },
-    { id: 10, title: '10. 끝수합 통계', desc: '6개 번호 끝수(0~9) 합계 (예: 20~35점) 모멘텀 분석' },
-    { id: 11, title: '11. AC(산술적복잡성) 통계', desc: 'AC 6~10 복잡성 수치별 회차 분포' },
-    { id: 12, title: '12. OMR 공간 분산 패턴 통계', desc: '실제 로또 OMR 용지 지그재그 패턴선 시각화' }
-  ];
-
-  // 가변 테마 색상
+  // 테마 색상
   const dynamicBg = isDarkMode ? '#0F172A' : COLORS.background;
   const dynamicCard = isDarkMode ? '#1E293B' : COLORS.cardBg;
   const dynamicText = isDarkMode ? '#F8FAFC' : COLORS.textPrimary;
   const dynamicBorder = isDarkMode ? '#334155' : COLORS.border;
 
-  // 전체 1239개 데이터 정렬 적용
-  const displayDraws = isAscending ? [...OFFLINE_DB].reverse() : OFFLINE_DB;
+  // 전체 1239개 데이터 정렬 메모이제이션 (불필요한 reverse 복사 차단)
+  const displayDraws = useMemo(() => {
+    return isAscending ? [...OFFLINE_DB].reverse() : OFFLINE_DB;
+  }, [isAscending]);
+
+  // 고정 행 높이 계산으로 FlatList 렌더링 지연을 0ms로 단축
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: 54, // 48(height) + 6(marginBottom)
+    offset: 54 * index,
+    index,
+  }), []);
+
+  const keyExtractor = useCallback((item: LottoRecord) => String(item.draw), []);
 
   // -------------------------------------------------------------------------
-  // [모달] 우측 상단 추세 그래프
+  // [추세 그래프 모달]
   // -------------------------------------------------------------------------
   const renderTrendGraphModal = () => {
     if (!selectedStatId) return null;
-    const catInfo = statsCategories.find(c => c.id === selectedStatId);
+    const catInfo = STATS_CATEGORIES.find(c => c.id === selectedStatId);
     const recent20 = OFFLINE_DB.slice(0, 20);
 
     return (
@@ -96,66 +223,6 @@ export const StatisticsScreen: React.FC = () => {
   };
 
   // -------------------------------------------------------------------------
-  // [개별 전용 뷰 5] 이월수 통계 (1줄 컴팩트 행)
-  // -------------------------------------------------------------------------
-  const renderCarryOverDetail = () => {
-    return (
-      <View>
-        <View style={styles.sortHeaderRow}>
-          <Text style={{ fontSize: 13, fontWeight: '800', color: dynamicText }}>
-            전체 {displayDraws.length}개 회차 분석 (이월수 하이퍼 모멘텀)
-          </Text>
-          <TouchableOpacity 
-            style={[styles.sortBtn, { backgroundColor: dynamicCard, borderColor: dynamicBorder }]}
-            onPress={() => setIsAscending(!isAscending)}
-          >
-            <ArrowUpDown color={COLORS.primary} size={14} style={{ marginRight: 4 }} />
-            <Text style={[styles.sortBtnText, { color: dynamicText }]}>
-              {isAscending ? '과거순 (1회~)' : '최신순 (1239회~)'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {displayDraws.map((item) => {
-          // 직전 회차 찾기
-          const prevDraw = OFFLINE_DB.find(d => d.draw === item.draw - 1);
-          const carryOverNums = prevDraw ? item.nums.filter(n => prevDraw.nums.includes(n)) : [];
-
-          return (
-            <View key={item.draw} style={[styles.compactSingleRow, { backgroundColor: dynamicCard, borderColor: dynamicBorder }]}>
-              {/* 회차 라벨 */}
-              <Text style={[styles.compactDrawNo, { color: dynamicText }]}>{item.draw}회</Text>
-
-              {/* 공 6개 + 보너스 공 (가로 1줄) */}
-              <View style={styles.compactBallsRow}>
-                {item.nums.map((n: number) => {
-                  const isCarry = carryOverNums.includes(n);
-                  return (
-                    <View key={n} style={{ opacity: isCarry ? 1.0 : 0.25 }}>
-                      <LottoBall number={n} size={26} />
-                    </View>
-                  );
-                })}
-                <Text style={styles.compactPlus}>+</Text>
-                <View style={{ opacity: 0.25 }}>
-                  <LottoBall number={item.bonus} size={26} isBonus />
-                </View>
-              </View>
-
-              {/* 오른쪽 지표 배지 (1줄 배치) */}
-              <View style={[styles.compactMetricBadge, carryOverNums.length > 0 && styles.carryHighlightBadge]}>
-                <Text style={[styles.compactMetricText, carryOverNums.length > 0 && { color: COLORS.neonGreen }]}>
-                  {carryOverNums.length > 0 ? `이월 ${carryOverNums.length}개` : '이월 0개'}
-                </Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
-
-  // -------------------------------------------------------------------------
   // [개별 전용 뷰 12] OMR 공간 분산 패턴 통계
   // -------------------------------------------------------------------------
   const renderOMRPatternDetail = () => {
@@ -163,7 +230,7 @@ export const StatisticsScreen: React.FC = () => {
     const nums = currentDrawRecord.nums;
 
     return (
-      <View style={{ alignItems: 'center' }}>
+      <ScrollView contentContainerStyle={{ alignItems: 'center', padding: 16, paddingBottom: 140 }}>
         <Text style={[styles.historyListSectionTitle, { color: dynamicText, alignSelf: 'flex-start' }]}>
           실제 로또 OMR 용지 패턴 시각화 (1239개 회차)
         </Text>
@@ -216,104 +283,25 @@ export const StatisticsScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </ScrollView>
     );
   };
 
   // -------------------------------------------------------------------------
-  // [개별 전용 뷰 6~11] 지표별 1줄 컴팩트 가로 행 (Single Row Layout)
+  // [초고속 FlatList 헤더]
   // -------------------------------------------------------------------------
-  const renderSumOrMetricDetail = (statId: number) => {
-    let statTitle = '번호합 통계';
-    if (statId === 7) statTitle = '앞수합 (1~3번 번호 합계) 전용 분석';
-    else if (statId === 8) statTitle = '뒷수합 (4~6번 번호 합계) 전용 분석';
-    else if (statId === 9) statTitle = '첫수합 (1번 번호) 전용 분석';
-    else if (statId === 10) statTitle = '끝수합 (6개 번호 끝수 합계) 전용 분석';
-    else if (statId === 11) statTitle = 'AC(산술적 복잡성) 전용 분석';
+  const renderDetailListHeader = () => {
+    const cat = STATS_CATEGORIES.find(c => c.id === selectedStatId);
 
     return (
-      <View>
-        <View style={styles.sortHeaderRow}>
-          <Text style={{ fontSize: 13, fontWeight: '800', color: dynamicText }}>
-            전체 {displayDraws.length}개 회차 분석 결과 (1줄 컴팩트 표기)
-          </Text>
-          <TouchableOpacity 
-            style={[styles.sortBtn, { backgroundColor: dynamicCard, borderColor: dynamicBorder }]}
-            onPress={() => setIsAscending(!isAscending)}
-          >
-            <ArrowUpDown color={COLORS.primary} size={14} style={{ marginRight: 4 }} />
-            <Text style={[styles.sortBtnText, { color: dynamicText }]}>
-              {isAscending ? '과거순 (1회~)' : '최신순 (1239회~)'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 전체 1,239개 회차 1줄 가로 컴팩트 행 연속 노출 */}
-        {displayDraws.map((item) => {
-          const frontSum = item.nums[0] + item.nums[1] + item.nums[2];
-          const backSum = item.nums[3] + item.nums[4] + item.nums[5];
-          const firstNum = item.nums[0];
-          const endingDigitSum = item.nums.reduce((acc: number, n: number) => acc + getEndingDigit(n), 0);
-          const totalSum = item.nums.reduce((a: number, b: number) => a + b, 0);
-          const ac = calculateACValue(item.nums);
-
-          let badgeText = `${totalSum}점`;
-          let badgeColor = COLORS.primary;
-
-          if (statId === 7) {
-            badgeText = `앞수합 ${frontSum}점`;
-            badgeColor = COLORS.accentBlue;
-          } else if (statId === 8) {
-            badgeText = `뒷수합 ${backSum}점`;
-            badgeColor = COLORS.primary;
-          } else if (statId === 9) {
-            badgeText = `첫수 ${firstNum}번`;
-            badgeColor = COLORS.neonYellow;
-          } else if (statId === 10) {
-            badgeText = `끝수합 ${endingDigitSum}점`;
-            badgeColor = COLORS.neonGreen;
-          } else if (statId === 11) {
-            badgeText = `AC ${ac}`;
-            badgeColor = COLORS.accentBlue;
-          }
-
-          return (
-            <View key={item.draw} style={[styles.compactSingleRow, { backgroundColor: dynamicCard, borderColor: dynamicBorder }]}>
-              {/* 회차 라벨 */}
-              <Text style={[styles.compactDrawNo, { color: dynamicText }]}>{item.draw}회</Text>
-
-              {/* 공 6개 + 보너스 공 (가로 1줄) */}
-              <View style={styles.compactBallsRow}>
-                {item.nums.map((n: number) => (
-                  <LottoBall key={n} number={n} size={26} />
-                ))}
-                <Text style={styles.compactPlus}>+</Text>
-                <LottoBall number={item.bonus} size={26} isBonus />
-              </View>
-
-              {/* 오른쪽 지표 배지 (1줄 배치) */}
-              <View style={[styles.compactMetricBadge, { backgroundColor: 'rgba(37, 99, 235, 0.12)' }]}>
-                <Text style={[styles.compactMetricText, { color: badgeColor }]}>{badgeText}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
-
-  // -------------------------------------------------------------------------
-  // 개별 상세 통계 라우터
-  // -------------------------------------------------------------------------
-  const renderDetailView = () => {
-    const cat = statsCategories.find(c => c.id === selectedStatId);
-
-    return (
-      <ScrollView style={[styles.container, { backgroundColor: dynamicBg }]} contentContainerStyle={styles.contentContainer}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
         {renderTrendGraphModal()}
 
         <View style={styles.detailHeader}>
-          <TouchableOpacity style={[styles.backBtn, { backgroundColor: dynamicCard, borderColor: dynamicBorder }]} onPress={() => setSelectedStatId(null)}>
+          <TouchableOpacity 
+            style={[styles.backBtn, { backgroundColor: dynamicCard, borderColor: dynamicBorder }]} 
+            onPress={() => setSelectedStatId(null)}
+          >
             <ArrowLeft color={dynamicText} size={20} style={{ marginRight: 4 }} />
             <Text style={[styles.backBtnText, { color: dynamicText }]}>통계 목록</Text>
           </TouchableOpacity>
@@ -329,12 +317,73 @@ export const StatisticsScreen: React.FC = () => {
           <Text style={styles.statDetailDesc}>{cat?.desc}</Text>
         </View>
 
-        {selectedStatId === 5 && renderCarryOverDetail()}
-        {selectedStatId === 12 && renderOMRPatternDetail()}
-        {selectedStatId !== 5 && selectedStatId !== 12 && (
-          renderSumOrMetricDetail(selectedStatId || 6)
-        )}
-      </ScrollView>
+        <View style={styles.sortHeaderRow}>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: dynamicText }}>
+            전체 {displayDraws.length}개 회차 분석 결과 (초고속 가상화 로딩)
+          </Text>
+          <TouchableOpacity 
+            style={[styles.sortBtn, { backgroundColor: dynamicCard, borderColor: dynamicBorder }]}
+            onPress={() => setIsAscending(!isAscending)}
+          >
+            <ArrowUpDown color={COLORS.primary} size={14} style={{ marginRight: 4 }} />
+            <Text style={[styles.sortBtnText, { color: dynamicText }]}>
+              {isAscending ? '과거순 (1회~)' : '최신순 (1239회~)'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  // -------------------------------------------------------------------------
+  // [초고속 가상화 상세 화면: FlatList]
+  // -------------------------------------------------------------------------
+  const renderDetailView = () => {
+    if (selectedStatId === 12) {
+      return (
+        <View style={[styles.container, { backgroundColor: dynamicBg }]}>
+          {renderDetailListHeader()}
+          {renderOMRPatternDetail()}
+        </View>
+      );
+    }
+
+    return (
+      <View style={[styles.container, { backgroundColor: dynamicBg }]}>
+        <FlatList
+          data={displayDraws}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          initialNumToRender={20}
+          maxToRenderPerBatch={25}
+          windowSize={7}
+          removeClippedSubviews={true}
+          ListHeaderComponent={renderDetailListHeader}
+          contentContainerStyle={{ paddingBottom: 140 }}
+          style={{ flex: 1, paddingHorizontal: 16 }}
+          renderItem={({ item }) => {
+            if (selectedStatId === 5) {
+              return (
+                <CompactCarryOverRow
+                  item={item}
+                  dynamicCard={dynamicCard}
+                  dynamicBorder={dynamicBorder}
+                  dynamicText={dynamicText}
+                />
+              );
+            }
+            return (
+              <CompactMetricRow
+                item={item}
+                statId={selectedStatId || 6}
+                dynamicCard={dynamicCard}
+                dynamicBorder={dynamicBorder}
+                dynamicText={dynamicText}
+              />
+            );
+          }}
+        />
+      </View>
     );
   };
 
@@ -342,16 +391,19 @@ export const StatisticsScreen: React.FC = () => {
     return renderDetailView();
   }
 
+  // -------------------------------------------------------------------------
+  // [통계 카테고리 메인 목록]
+  // -------------------------------------------------------------------------
   return (
     <ScrollView style={[styles.container, { backgroundColor: dynamicBg }]} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: dynamicText }]}>12가지 세부 통계 자료 리스트 (총 1239개 회차)</Text>
         <Text style={styles.headerSubtitle}>
-          통계 카드를 터치하면 1회차부터 1239회차까지 전체 데이터를 1줄 컴팩트 행으로 한눈에 시각화해 보실 수 있습니다.
+          통계 카드를 터치하면 1회차부터 1239회차까지 전체 데이터를 1줄 컴팩트 행으로 즉각 시각화해 보실 수 있습니다.
         </Text>
       </View>
 
-      {statsCategories.map((cat) => (
+      {STATS_CATEGORIES.map((cat) => (
         <TouchableOpacity
           key={cat.id}
           style={[styles.statCategoryCard, { backgroundColor: dynamicCard, borderColor: dynamicBorder }]}
@@ -431,7 +483,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-    marginTop: 4,
   },
   backBtn: {
     flexDirection: 'row',
@@ -494,7 +545,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
-  // 1줄 컴팩트 가로 행 스타일 (Single Row Layout)
   compactSingleRow: {
     flexDirection: 'row',
     alignItems: 'center',

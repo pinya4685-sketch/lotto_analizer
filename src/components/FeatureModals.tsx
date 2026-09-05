@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../constants/theme';
 import { OFFLINE_DB } from '../services/lottoApi';
-import { calculateACValue } from '../utils/quantEngine';
+import { calculateACValue, calculateDeathZone } from '../utils/quantEngine';
 import { LottoBall } from './LottoBall';
 import { useLotto } from '../context/LottoContext';
 import { 
@@ -312,7 +312,9 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
         '홀 : 짝 비율 필터': '홀 : 짝 = 3 : 3 (표준)',
         '동일 색상 제한 필터': '동일 색상 최대 4개',
       };
-      const newExcluded = [6, 13, 20, 27, 34, 41];
+      // 하드코딩 제거: 100% 동적 킬 스위치 연산 결과에서 상위 제외수 도출
+      const dynamicDeathResult = calculateDeathZone(OFFLINE_DB);
+      const newExcluded = dynamicDeathResult.deathZone.slice(0, 6);
       setFilterValues(newFilterValues);
       setExcludedBalls(newExcluded);
       updateUserFilters({
@@ -321,7 +323,7 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
       });
       Alert.alert(
         '🤖 AI 필터 분석 최적화 완수',
-        '1,239개 최신 DB 패턴 분석을 완료하여 최적 필터 수치가 자동 세팅 및 저장되었습니다!'
+        `최신 ${OFFLINE_DB.length}개 DB 동적 킬 스위치 패턴 분석을 완료하여 최적 필터 및 제외수(${newExcluded.join(', ')})가 자동 세팅 및 저장되었습니다!`
       );
     }, 2500);
 

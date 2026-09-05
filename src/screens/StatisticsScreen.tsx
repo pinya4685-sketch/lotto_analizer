@@ -27,7 +27,20 @@ import { OFFLINE_DB } from '../services/lottoApi';
 import { calculateACValue, getEndingDigit } from '../utils/quantEngine';
 import { LottoBall } from '../components/LottoBall';
 import { COLORS } from '../constants/theme';
-import { ChevronRight, ArrowLeft, TrendingUp, X, ArrowUpDown, Flame, Snowflake, Award } from 'lucide-react-native';
+import { 
+  ChevronRight, 
+  ArrowLeft, 
+  TrendingUp, 
+  X, 
+  ArrowUpDown, 
+  Flame, 
+  Snowflake, 
+  Award,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  Activity
+} from 'lucide-react-native';
 import { LottoRecord } from '../data/lottoData';
 
 // ── 12가지 통계 카테고리 정적 목록 ──
@@ -131,6 +144,77 @@ function getOddEvenInfo(nums: number[]) {
   const evenCount = 6 - oddCount;
   return { oddCount, evenCount };
 }
+
+// ── 통계 항목별 고유 지표값(Metric) 산출 함수 ──
+export interface CategoryMetricInfo {
+  value: number;
+  displayValue: string;
+  unit: string;
+  maxLimit: number;
+}
+
+export function getCategoryMetricInfo(record: LottoRecord, statId: number): CategoryMetricInfo {
+  switch (statId) {
+    case 1: {
+      const sumFreq = record.nums.reduce((acc, n) => {
+        const item = NUMBER_FREQUENCIES.find(f => f.num === n);
+        return acc + (item ? item.count : 160);
+      }, 0);
+      const avg = Number((sumFreq / 6).toFixed(1));
+      return { value: avg, displayValue: `${avg}`, unit: '회', maxLimit: 200 };
+    }
+    case 2: {
+      const sumCold = record.nums.reduce((acc, n) => {
+        const item = COLD_NUMBERS.find(c => c.num === n);
+        return acc + (item ? item.missWeeks : 5);
+      }, 0);
+      const avg = Number((sumCold / 6).toFixed(1));
+      return { value: avg, displayValue: `${avg}`, unit: '주', maxLimit: 25 };
+    }
+    case 3: {
+      const oddCount = record.nums.filter(n => n % 2 !== 0).length;
+      return { value: oddCount, displayValue: `홀 ${oddCount}`, unit: '개', maxLimit: 6 };
+    }
+    case 4: {
+      const { pairs } = getConsecutiveInfo(record.nums);
+      return { value: pairs.length, displayValue: `${pairs.length}`, unit: '쌍', maxLimit: 3 };
+    }
+    case 5: {
+      const prev = DRAW_MAP.get(record.draw - 1);
+      const carries = prev ? record.nums.filter(n => prev.nums.includes(n)).length : 0;
+      return { value: carries, displayValue: `${carries}`, unit: '개', maxLimit: 4 };
+    }
+    case 7: {
+      const sum = record.nums[0] + record.nums[1] + record.nums[2];
+      return { value: sum, displayValue: `${sum}`, unit: '점', maxLimit: 80 };
+    }
+    case 8: {
+      const sum = record.nums[3] + record.nums[4] + record.nums[5];
+      return { value: sum, displayValue: `${sum}`, unit: '점', maxLimit: 130 };
+    }
+    case 9: {
+      const first = record.nums[0];
+      return { value: first, displayValue: `${first}`, unit: '번', maxLimit: 35 };
+    }
+    case 10: {
+      const sum = record.nums.reduce((acc, n) => acc + getEndingDigit(n), 0);
+      return { value: sum, displayValue: `${sum}`, unit: '점', maxLimit: 45 };
+    }
+    case 11: {
+      const ac = calculateACValue(record.nums);
+      return { value: ac, displayValue: `${ac}`, unit: '점', maxLimit: 10 };
+    }
+    case 12: {
+      const cols = new Set(record.nums.map(n => ((n - 1) % 7) + 1));
+      return { value: cols.size, displayValue: `${cols.size}`, unit: '열', maxLimit: 6 };
+    }
+    default: {
+      const sum = record.nums.reduce((a, b) => a + b, 0);
+      return { value: sum, displayValue: `${sum}`, unit: '점', maxLimit: 200 };
+    }
+  }
+}
+
 
 // ─────────────────────────────────────────────────────────────
 // [컴포넌트] 1. 번호별 출현 횟수 행
@@ -438,43 +522,247 @@ export const StatisticsScreen: React.FC = () => {
 
   const keyExtractor = useCallback((item: LottoRecord) => String(item.draw), []);
 
-  // ── [추세 그래프 모달] ──
+  // ── [각 통계별 등락 이동평균선 추세 그래프 모달] ──
   const renderTrendGraphModal = () => {
     if (!selectedStatId) return null;
-    const catInfo = STATS_CATEGORIES.find(c => c.id === selectedStatId);
-    const recent20 = OFFLINE_DB.slice(0, 20);
+    const catInfo = STATS_CATEGORIES.find(c => c.id === selectedStatId) || STATS_CATEGORIES[5];
+    
+    // 최근 26개 회차를 슬라이스하여 20개 회차의 5회차 이동평균선(MA5) 계산
+    const rawSlice = OFFLINE_DB.slice(0, 26);
+    const seriesData = [];
+
+    for (let i = 0; i < 20; i++) {
+      const item = rawSlice[i];
+      if (!item) break;
+      const metric = getCategoryMetricInfo(item, selectedStatId);
+
+      // 5회차 이동평균 (i ~ i+4)
+      const ma5Slice = rawSlice.slice(i, i + 5);
+      const ma5 = Number(
+        (ma5Slice.reduce((acc, d) => acc + getCategoryMetricInfo(d, selectedStatId).value, 0) / ma5Slice.length).toFixed(1)
+      );
+
+      // 직전 5회차 이동평균 (i+1 ~ i+5)
+      const prevSlice = rawSlice.slice(i + 1, i + 6);
+      const prevMa5 = prevSlice.length > 0
+        ? Number((prevSlice.reduce((acc, d) => acc + getCategoryMetricInfo(d, selectedStatId).value, 0) / prevSlice.length).toFixed(1))
+        : ma5;
+
+      const diff = Number((ma5 - prevMa5).toFixed(1));
+      const trend = diff > 0.05 ? 'up' : diff < -0.05 ? 'down' : 'flat';
+
+      seriesData.push({
+        draw: item.draw,
+        value: metric.value,
+        displayValue: metric.displayValue,
+        unit: metric.unit,
+        maxLimit: metric.maxLimit,
+        ma5,
+        diff,
+        trend
+      });
+    }
+
+    // 시계열 순서로 반전 (과거 ➔ 최신 회차)
+    const chronologicalSeries = [...seriesData].reverse();
+    const latestItem = seriesData[0]; // 1239회 최신 회차
+
+    const getTrendBadge = (trend: string, diff: number, unit: string) => {
+      if (trend === 'up') {
+        return {
+          text: `▲ +${diff}${unit} 상승`,
+          color: '#EF4444',
+          bg: 'rgba(239, 68, 68, 0.12)'
+        };
+      }
+      if (trend === 'down') {
+        return {
+          text: `▼ ${diff}${unit} 하강`,
+          color: '#2563EB',
+          bg: 'rgba(37, 99, 235, 0.12)'
+        };
+      }
+      return {
+        text: `─ 0.0${unit} 보합`,
+        color: '#94A3B8',
+        bg: 'rgba(148, 163, 184, 0.12)'
+      };
+    };
+
+    const latestBadge = latestItem ? getTrendBadge(latestItem.trend, latestItem.diff, latestItem.unit) : null;
 
     return (
       <Modal visible={showTrendModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={[styles.trendModalContainer, { backgroundColor: dynamicCard }]}>
             <View style={[styles.trendModalHeader, { borderBottomColor: dynamicBorder }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <TrendingUp color={COLORS.primary} size={20} style={{ marginRight: 6 }} />
-                <Text style={[styles.trendModalTitle, { color: dynamicText }]}>{catInfo?.title} 추세 그래프</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={styles.trendHeaderIconBadge}>
+                  <Activity color="#FFFFFF" size={18} />
+                </View>
+                <View>
+                  <Text style={[styles.trendModalTitle, { color: dynamicText }]}>
+                    {catInfo.title}
+                  </Text>
+                  <Text style={styles.trendModalSubtitle}>
+                    5회차 등락 이동평균선 (MA5) 모멘텀 분석
+                  </Text>
+                </View>
               </View>
-              <TouchableOpacity onPress={() => setShowTrendModal(false)}>
+              <TouchableOpacity onPress={() => setShowTrendModal(false)} style={{ padding: 4 }}>
                 <X color={dynamicText} size={22} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-              <Text style={styles.trendSubText}>
-                최근 20개 회차 기준 {catInfo?.title} 시계열 변화 추이
-              </Text>
+            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+              {/* 1. 최신 이동평균 등락 종합 브리핑 카드 */}
+              {latestItem && (
+                <View style={[styles.trendSummaryCard, { backgroundColor: isDarkMode ? '#0F172A' : '#F8FAFC', borderColor: dynamicBorder }]}>
+                  <View style={styles.trendSummaryTopRow}>
+                    <View>
+                      <Text style={styles.trendSummaryDrawLabel}>{latestItem.draw}회 최신 실제값</Text>
+                      <Text style={[styles.trendSummaryActualVal, { color: dynamicText }]}>
+                        {latestItem.displayValue} {latestItem.unit}
+                      </Text>
+                    </View>
 
-              <View style={[styles.chartContainer, { backgroundColor: isDarkMode ? '#0F172A' : COLORS.cardBgLight, borderColor: dynamicBorder }]}>
-                {recent20.map((item) => {
-                  const sum = item.nums.reduce((a: number, b: number) => a + b, 0);
-                  const heightPct = Math.min(100, Math.max(20, Math.round((sum / 200) * 100)));
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={styles.trendSummaryDrawLabel}>5회차 이동평균 (MA5)</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={[styles.trendSummaryMaVal, { color: COLORS.primary }]}>
+                          {latestItem.ma5} {latestItem.unit}
+                        </Text>
+                        {latestBadge && (
+                          <View style={[styles.trendBadgePill, { backgroundColor: latestBadge.bg }]}>
+                            <Text style={[styles.trendBadgePillText, { color: latestBadge.color }]}>
+                              {latestBadge.text}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.trendCommentBox}>
+                    <Text style={styles.trendCommentText}>
+                      💡 {catInfo.title.replace(/^[0-9]+\.\s*/, '')}의 5회차 이동평균선이 전주 대비{' '}
+                      <Text style={{ fontWeight: '900', color: latestBadge?.color || COLORS.primary }}>
+                        {latestItem.diff > 0 ? `+${latestItem.diff}${latestItem.unit} 상승` : latestItem.diff < 0 ? `${latestItem.diff}${latestItem.unit} 하강` : '동일 수준 유지(보합)'}
+                      </Text>
+                      하며 {latestItem.trend === 'up' ? '단기 상승 모멘텀을 형성하고 있습니다.' : latestItem.trend === 'down' ? '하향 안정화 국면에 진입했습니다.' : '횡보 밴드 내에서 수렴 중입니다.'}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* 2. 시각적 등락 이동평균 차트 (가로 스크롤) */}
+              <View style={styles.chartSectionHeader}>
+                <TrendingUp color={COLORS.primary} size={16} style={{ marginRight: 6 }} />
+                <Text style={[styles.chartSectionTitle, { color: dynamicText }]}>
+                  최근 20개 회차 실제값 & 5회차 이동평균선(MA5) 시계열
+                </Text>
+              </View>
+
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 4 }}
+                style={[styles.chartScrollArea, { backgroundColor: isDarkMode ? '#0F172A' : '#FFFFFF', borderColor: dynamicBorder }]}
+              >
+                {chronologicalSeries.map((pt) => {
+                  const isLatest = pt.draw === latestItem?.draw;
+                  const heightPct = Math.min(100, Math.max(12, Math.round((pt.value / Math.max(pt.maxLimit, 1)) * 100)));
+                  const badge = getTrendBadge(pt.trend, pt.diff, pt.unit);
 
                   return (
-                    <View key={item.draw} style={styles.chartCol}>
-                      <Text style={styles.chartValText}>{sum}</Text>
-                      <View style={styles.chartBarTrack}>
-                        <View style={[styles.chartBarFill, { height: `${heightPct}%` as any }]} />
+                    <View key={pt.draw} style={[styles.chartColGroup, isLatest && styles.chartColGroupActive]}>
+                      {/* 이동평균선 MA5 뱃지 */}
+                      <View style={[styles.chartMaPill, { backgroundColor: badge.bg, borderColor: badge.color }]}>
+                        <Text style={[styles.chartMaPillText, { color: badge.color }]}>
+                          MA {pt.ma5}
+                        </Text>
                       </View>
-                      <Text style={styles.chartLabelText}>{item.draw}회</Text>
+
+                      {/* 등락 화살표 */}
+                      <View style={styles.chartArrowRow}>
+                        {pt.trend === 'up' ? (
+                          <ArrowUp color="#EF4444" size={12} />
+                        ) : pt.trend === 'down' ? (
+                          <ArrowDown color="#2563EB" size={12} />
+                        ) : (
+                          <Minus color="#94A3B8" size={12} />
+                        )}
+                      </View>
+
+                      {/* 실제값 텍스트 */}
+                      <Text style={[styles.chartPointValText, { color: isLatest ? COLORS.primary : dynamicText }]}>
+                        {pt.displayValue}
+                      </Text>
+
+                      {/* 막대 바 트랙 */}
+                      <View style={styles.chartTrack}>
+                        <View 
+                          style={[
+                            styles.chartFillBar, 
+                            { 
+                              height: `${heightPct}%`,
+                              backgroundColor: isLatest 
+                                ? COLORS.primary 
+                                : pt.trend === 'up' 
+                                  ? '#EF4444' 
+                                  : pt.trend === 'down' 
+                                    ? '#2563EB' 
+                                    : '#94A3B8'
+                            }
+                          ]} 
+                        />
+                      </View>
+
+                      {/* 회차 라벨 */}
+                      <Text style={[styles.chartAxisLabel, isLatest && { color: COLORS.primary, fontWeight: '900' }]}>
+                        {pt.draw}회
+                      </Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+
+              {/* 3. 회차별 등락 이동평균선 정밀 상세 표 */}
+              <View style={[styles.tableContainer, { backgroundColor: isDarkMode ? '#0F172A' : '#FFFFFF', borderColor: dynamicBorder }]}>
+                <View style={styles.tableHeaderRow}>
+                  <Text style={[styles.tableTh, { flex: 1.2 }]}>회차</Text>
+                  <Text style={[styles.tableTh, { flex: 1.5 }]}>실제값</Text>
+                  <Text style={[styles.tableTh, { flex: 2.0 }]}>5회 이동평균(MA5)</Text>
+                  <Text style={[styles.tableTh, { flex: 1.8, textAlign: 'right' }]}>등락 추세</Text>
+                </View>
+
+                {seriesData.slice(0, 12).map((row, idx) => {
+                  const b = getTrendBadge(row.trend, row.diff, row.unit);
+                  return (
+                    <View 
+                      key={row.draw} 
+                      style={[
+                        styles.tableTr, 
+                        { borderBottomColor: dynamicBorder },
+                        idx === 0 && { backgroundColor: isDarkMode ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.06)' }
+                      ]}
+                    >
+                      <Text style={[styles.tableTdBold, { flex: 1.2, color: idx === 0 ? COLORS.primary : dynamicText }]}>
+                        {row.draw}회{idx === 0 ? ' (최신)' : ''}
+                      </Text>
+                      <Text style={[styles.tableTd, { flex: 1.5, color: dynamicText }]}>
+                        {row.displayValue} {row.unit}
+                      </Text>
+                      <Text style={[styles.tableTd, { flex: 2.0, color: COLORS.primary, fontWeight: '700' }]}>
+                        {row.ma5} {row.unit}
+                      </Text>
+                      <View style={{ flex: 1.8, alignItems: 'flex-end' }}>
+                        <View style={[styles.miniTrendBadge, { backgroundColor: b.bg }]}>
+                          <Text style={[styles.miniTrendText, { color: b.color }]}>
+                            {b.text}
+                          </Text>
+                        </View>
+                      </View>
                     </View>
                   );
                 })}
@@ -538,7 +826,7 @@ export const StatisticsScreen: React.FC = () => {
               <Text style={{ color: '#FFF', fontWeight: '800' }}>이전 회차 ({currentDrawRecord.draw - 1}회)</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.omrNavBtn}
+              style={styles.omrNavBtn} 
               onPress={() => setOmrSelectedDrawIndex(Math.max(0, omrSelectedDrawIndex - 1))}
             >
               <Text style={{ color: '#FFF', fontWeight: '800' }}>다음 회차 ({currentDrawRecord.draw + 1}회)</Text>
@@ -553,8 +841,6 @@ export const StatisticsScreen: React.FC = () => {
   const renderDetailHeader = (title: string, desc: string, showDrawSort: boolean = true) => {
     return (
       <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-        {renderTrendGraphModal()}
-
         <View style={styles.detailHeader}>
           <TouchableOpacity 
             style={[styles.backBtn, { backgroundColor: dynamicCard, borderColor: dynamicBorder }]} 
@@ -566,7 +852,7 @@ export const StatisticsScreen: React.FC = () => {
 
           <TouchableOpacity style={styles.trendGraphBtn} onPress={() => setShowTrendModal(true)}>
             <TrendingUp color="#FFF" size={16} style={{ marginRight: 4 }} />
-            <Text style={styles.trendGraphBtnText}>📈 추세 그래프</Text>
+            <Text style={styles.trendGraphBtnText}>📈 추세 그래프 (MA5)</Text>
           </TouchableOpacity>
         </View>
 
@@ -611,32 +897,59 @@ export const StatisticsScreen: React.FC = () => {
   };
 
   // ─────────────────────────────────────────────────────────────
+  // [메모이제이션 렌더 콜백: 앱플레이어 60fps 보장]
+  // ─────────────────────────────────────────────────────────────
+  const renderUniversalItem = useCallback(({ item }: { item: LottoRecord }) => (
+    <CompactUniversalDrawRow
+      item={item}
+      statId={selectedStatId || 6}
+      dynamicCard={dynamicCard}
+      dynamicBorder={dynamicBorder}
+      dynamicText={dynamicText}
+    />
+  ), [selectedStatId, dynamicCard, dynamicBorder, dynamicText]);
+
+  const renderFreqItem = useCallback(({ item, index }: { item: NumberFreqItem; index: number }) => (
+    <NumberFreqRow
+      item={item}
+      rank={index + 1}
+      maxCount={maxFreqCount}
+      dynamicCard={dynamicCard}
+      dynamicBorder={dynamicBorder}
+      dynamicText={dynamicText}
+    />
+  ), [maxFreqCount, dynamicCard, dynamicBorder, dynamicText]);
+
+  const renderColdItem = useCallback(({ item, index }: { item: ColdNumberItem; index: number }) => (
+    <ColdNumberRow
+      item={item}
+      rank={index + 1}
+      maxMiss={maxMissWeeks}
+      dynamicCard={dynamicCard}
+      dynamicBorder={dynamicBorder}
+      dynamicText={dynamicText}
+    />
+  ), [maxMissWeeks, dynamicCard, dynamicBorder, dynamicText]);
+
+  // ─────────────────────────────────────────────────────────────
   // [전용 화면 1] 1. 번호별 출현 횟수 통계 렌더링
   // ─────────────────────────────────────────────────────────────
   const renderNumberFrequencyView = () => {
     const cat = STATS_CATEGORIES[0];
     return (
       <View style={[styles.container, { backgroundColor: dynamicBg }]}>
+        {renderTrendGraphModal()}
         <FlatList
           data={sortedFreqData}
           keyExtractor={(item) => String(item.num)}
-          initialNumToRender={15}
-          maxToRenderPerBatch={15}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
           windowSize={5}
           removeClippedSubviews={true}
           ListHeaderComponent={() => renderDetailHeader(cat.title, cat.desc, false)}
           contentContainerStyle={{ paddingBottom: 140 }}
           style={{ flex: 1, paddingHorizontal: 16 }}
-          renderItem={({ item, index }) => (
-            <NumberFreqRow
-              item={item}
-              rank={index + 1}
-              maxCount={maxFreqCount}
-              dynamicCard={dynamicCard}
-              dynamicBorder={dynamicBorder}
-              dynamicText={dynamicText}
-            />
-          )}
+          renderItem={renderFreqItem}
         />
       </View>
     );
@@ -649,26 +962,18 @@ export const StatisticsScreen: React.FC = () => {
     const cat = STATS_CATEGORIES[1];
     return (
       <View style={[styles.container, { backgroundColor: dynamicBg }]}>
+        {renderTrendGraphModal()}
         <FlatList
           data={sortedColdData}
           keyExtractor={(item) => String(item.num)}
-          initialNumToRender={15}
-          maxToRenderPerBatch={15}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
           windowSize={5}
           removeClippedSubviews={true}
           ListHeaderComponent={() => renderDetailHeader(cat.title, cat.desc, false)}
           contentContainerStyle={{ paddingBottom: 140 }}
           style={{ flex: 1, paddingHorizontal: 16 }}
-          renderItem={({ item, index }) => (
-            <ColdNumberRow
-              item={item}
-              rank={index + 1}
-              maxMiss={maxMissWeeks}
-              dynamicCard={dynamicCard}
-              dynamicBorder={dynamicBorder}
-              dynamicText={dynamicText}
-            />
-          )}
+          renderItem={renderColdItem}
         />
       </View>
     );
@@ -691,6 +996,7 @@ export const StatisticsScreen: React.FC = () => {
       const cat = STATS_CATEGORIES[11];
       return (
         <View style={[styles.container, { backgroundColor: dynamicBg }]}>
+          {renderTrendGraphModal()}
           {renderDetailHeader(cat.title, cat.desc, false)}
           {renderOMRPatternDetail()}
         </View>
@@ -701,26 +1007,19 @@ export const StatisticsScreen: React.FC = () => {
     const currentCat = STATS_CATEGORIES.find(c => c.id === selectedStatId) || STATS_CATEGORIES[5];
     return (
       <View style={[styles.container, { backgroundColor: dynamicBg }]}>
+        {renderTrendGraphModal()}
         <FlatList
           data={displayDraws}
           keyExtractor={keyExtractor}
           getItemLayout={getItemLayout}
-          initialNumToRender={20}
-          maxToRenderPerBatch={25}
-          windowSize={7}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
           removeClippedSubviews={true}
           ListHeaderComponent={() => renderDetailHeader(currentCat.title, currentCat.desc, true)}
           contentContainerStyle={{ paddingBottom: 140 }}
           style={{ flex: 1, paddingHorizontal: 16 }}
-          renderItem={({ item }) => (
-            <CompactUniversalDrawRow
-              item={item}
-              statId={selectedStatId || 6}
-              dynamicCard={dynamicCard}
-              dynamicBorder={dynamicBorder}
-              dynamicText={dynamicText}
-            />
-          )}
+          renderItem={renderUniversalItem}
         />
       </View>
     );
@@ -1136,4 +1435,169 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: 4,
   }
+,
+  // ── [신규 등락 이동평균선(MA5) 스타일] ──
+  trendHeaderIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trendModalSubtitle: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  trendSummaryCard: {
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  trendSummaryTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  trendSummaryDrawLabel: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  trendSummaryActualVal: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  trendSummaryMaVal: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  trendBadgePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  trendBadgePillText: {
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  trendCommentBox: {
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148, 163, 184, 0.15)',
+  },
+  trendCommentText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  chartSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  chartSectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  chartScrollArea: {
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+    maxHeight: 220,
+  },
+  chartColGroup: {
+    alignItems: 'center',
+    width: 58,
+    paddingVertical: 8,
+  },
+  chartColGroupActive: {
+    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+    borderRadius: 8,
+  },
+  chartMaPill: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    marginBottom: 2,
+  },
+  chartMaPillText: {
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  chartArrowRow: {
+    height: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  chartPointValText: {
+    fontSize: 10,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  chartTrack: {
+    width: 10,
+    height: 90,
+    backgroundColor: 'rgba(148, 163, 184, 0.15)',
+    borderRadius: 5,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  chartFillBar: {
+    width: '100%',
+    borderRadius: 5,
+  },
+  chartAxisLabel: {
+    fontSize: 9,
+    color: COLORS.textMuted,
+    fontWeight: '600',
+  },
+  tableContainer: {
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(148, 163, 184, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  tableTh: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.textSecondary,
+  },
+  tableTr: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    alignItems: 'center',
+  },
+  tableTd: {
+    fontSize: 11,
+  },
+  tableTdBold: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  miniTrendBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  miniTrendText: {
+    fontSize: 10,
+    fontWeight: '800',
+  }
+
 });

@@ -312,6 +312,10 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
       if (includedBalls.includes(num)) {
         setIncludedBalls(includedBalls.filter(n => n !== num));
       } else {
+        if (excludedBalls.includes(num)) {
+          Alert.alert('선택 불가', `${num}번은 이미 '제외수'로 지정되어 있어 포함수로 중복 선택할 수 없습니다.`);
+          return;
+        }
         if (includedBalls.length >= 5) {
           Alert.alert('알림', '포함수는 최대 5개까지 설정할 수 있습니다.');
           return;
@@ -322,6 +326,10 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
       if (excludedBalls.includes(num)) {
         setExcludedBalls(excludedBalls.filter(n => n !== num));
       } else {
+        if (includedBalls.includes(num)) {
+          Alert.alert('선택 불가', `${num}번은 이미 '포함수'로 지정되어 있어 제외수로 중복 선택할 수 없습니다.`);
+          return;
+        }
         if (excludedBalls.length >= 35) {
           Alert.alert('알림', '제외수는 최대 35개까지 설정할 수 있습니다.');
           return;
@@ -628,17 +636,30 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
                   </Text>
                   <View style={styles.pickerBallGrid}>
                     {Array.from({ length: 45 }, (_, i) => i + 1).map(num => {
-                      const isTarget = numberPickerMode === 'included' 
-                        ? includedBalls.includes(num) 
-                        : excludedBalls.includes(num);
+                      const isIncluded = includedBalls.includes(num);
+                      const isExcluded = excludedBalls.includes(num);
+                      const isTarget = numberPickerMode === 'included' ? isIncluded : isExcluded;
+                      const isBlocked = numberPickerMode === 'included' ? isExcluded : isIncluded;
+
                       return (
                         <TouchableOpacity
                           key={num}
-                          style={[styles.pickerBallCell, isTarget && styles.pickerBallCellSelected]}
+                          style={[
+                            styles.pickerBallCell, 
+                            isTarget && styles.pickerBallCellSelected,
+                            isBlocked && { opacity: 0.3, backgroundColor: 'rgba(239, 68, 68, 0.08)' }
+                          ]}
                           onPress={() => handlePickNumber(num)}
                         >
                           <LottoBall number={num} size={34} />
                           {isTarget && <View style={styles.selectedCheckDot} />}
+                          {isBlocked && (
+                            <View style={styles.blockedBadge}>
+                              <Text style={styles.blockedBadgeText}>
+                                {numberPickerMode === 'included' ? '제외중' : '포함중'}
+                              </Text>
+                            </View>
+                          )}
                         </TouchableOpacity>
                       );
                     })}
@@ -1610,5 +1631,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     marginTop: 10,
+  },
+  blockedBadge: {
+    position: 'absolute',
+    bottom: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    zIndex: 10,
+  },
+  blockedBadgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '900',
   }
 });

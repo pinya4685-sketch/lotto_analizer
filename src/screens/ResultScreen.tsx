@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -9,11 +9,14 @@ import {
 } from 'react-native';
 import { useLotto } from '../context/LottoContext';
 import { LottoBall } from '../components/LottoBall';
+import { AiAnalysisBridgeModal } from '../components/AiAnalysisBridgeModal';
+import { getOfflineDbCount } from '../services/lottoApi';
 import { COLORS } from '../constants/theme';
 import { Sparkles, ShieldAlert, RotateCcw, BookmarkPlus } from 'lucide-react-native';
 
 export const ResultScreen: React.FC = () => {
   const { 
+    latestDraw,
     regularGames, 
     contrarianGames, 
     pipelineStats, 
@@ -22,6 +25,9 @@ export const ResultScreen: React.FC = () => {
     isDarkMode,
     saveNumberCombination
   } = useLotto();
+
+  const [showBridgeModal, setShowBridgeModal] = useState<boolean>(false);
+  const totalDbCount = getOfflineDbCount();
 
   // 가변 테마 색상
   const dynamicBg = isDarkMode ? '#0F172A' : COLORS.background;
@@ -37,8 +43,25 @@ export const ResultScreen: React.FC = () => {
     );
   };
 
+  const handleRegenerate = () => {
+    setShowBridgeModal(true);
+  };
+
+  const handleBridgeFinish = () => {
+    runQuantAnalysis();
+    setShowBridgeModal(false);
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: dynamicBg }]} contentContainerStyle={styles.contentContainer}>
+      {/* AI 분석 브릿지 모달 (재추출 시 3.5초간 연출) */}
+      <AiAnalysisBridgeModal
+        visible={showBridgeModal}
+        onFinish={handleBridgeFinish}
+        drawNo={latestDraw.drwNo}
+        totalDbCount={totalDbCount}
+      />
+
       <View style={styles.headerRow}>
         <View>
           <Text style={[styles.headerTitle, { color: dynamicText }]}>발생번호 추출 결과</Text>
@@ -49,8 +72,8 @@ export const ResultScreen: React.FC = () => {
 
         <TouchableOpacity 
           style={styles.reGenerateBtn} 
-          onPress={runQuantAnalysis}
-          disabled={isEngineRunning}
+          onPress={handleRegenerate}
+          disabled={isEngineRunning || showBridgeModal}
         >
           <RotateCcw color="#FFF" size={16} style={{ marginRight: 4 }} />
           <Text style={styles.reGenerateBtnText}>재추출</Text>

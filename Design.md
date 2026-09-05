@@ -12,8 +12,8 @@
 - **프레임워크**: Expo SDK 57 (SDK 57.0.20 호환 모드)
 - **코어 런타임**: React 19.2.3, React Native 0.86.3
 - **네비게이션**: `@react-navigation/bottom-tabs` & `@react-navigation/native` v7
-- **광고 플랫폼**: `react-native-google-mobile-ads` v16.5.0
-  - Android Gradle 빌드 호환성: Gradle resolutionStrategy를 통해 `play-services-ads:23.6.0`, `user-messaging-platform:3.0.0` 강제 지정 및 Kotlin 2.1.21 주입
+- **광고 플랫폼**: `react-native-google-mobile-ads` v16.3.4 (안정화 핀 고정)
+  - Android Gradle 빌드 호환성: Kotlin 2.3.0 메타데이터 충돌을 회피하기 위해 `play-services-ads:25.0.0` 기반의 16.3.4 안정 버전을 채택하고, Expo SDK 57 표준 `kotlinVersion: 2.1.20`과 일치시켜 `pika-compiler:0.3.2-2.1.20` 의존성을 완벽하게 해소
 - **빌드 시스템**: EAS (Expo Application Services) Build (Android AAB 타겟)
 
 ---
@@ -22,10 +22,8 @@
 ```
 lotto_analizer/
 ├── App.tsx                     # 앱 진입점, 글로벌 테마/네비게이션 및 하단 배너 래퍼
-├── app.json                    # Expo 매니페스트 및 플러그인(AdMob, Splash, Gradle) 설정
+├── app.json                    # Expo 매니페스트 및 플러그인(AdMob, Splash, BuildProperties) 설정
 ├── eas.json                    # EAS 빌드 프로필 (production app-bundle)
-├── plugins/
-│   └── withKotlinGradlePluginVersion.js  # Android 빌드용 Kotlin 및 AdMob SDK 해소 플러그인
 ├── assets/                     # 5색 로또볼 앱 아이콘, 어댑티브 아이콘, 스플래시 이미지
 ├── src/
 │   ├── context/
@@ -52,5 +50,7 @@ lotto_analizer/
    - `app.json` 루트에서 비표준 프로퍼티인 `newArchEnabled` 및 구버전 `splash` 제거
    - `expo-splash-screen` 플러그인 방식으로 전환 및 최신 SDK 패치 버전(`~57.0.20`, `expo-build-properties@~57.0.17`) 동기화 완료
    - `npx expo-doctor` 21개 검사 항목 100% 통과 (0 error)
-2. **Google Mobile Ads Kotlin 호환성 보장**:
-   - Gradle `withProjectBuildGradle` 및 `withAppBuildGradle` 커스텀 플러그인으로 Kotlin 2.1.21 설정 및 play-services-ads 23.6.0 강제 적용
+2. **Google Mobile Ads 및 Kotlin 컴파일러 호환성 해결**:
+   - `react-native-google-mobile-ads`를 `16.3.4`로 고정하여 `play-services-ads:25.4.0`의 Kotlin 2.3.0 메타데이터 충돌 방지
+   - `expo-build-properties`에서 `kotlinVersion: 2.1.20`을 설정하여 Expo SDK 57의 `io.github.lukmccall.pika:pika-compiler:0.3.2-2.1.20` 결합 의존성 오류(pika-compiler:0.3.2-2.1.21 부재)를 완전히 해결
+   - 비표준 Gradle 치환 플러그인을 제거하고 Expo Managed Workflow 표준 파이프라인으로 복원

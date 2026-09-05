@@ -53,4 +53,5 @@ lotto_analizer/
 2. **Google Mobile Ads 및 Kotlin 컴파일러 호환성 해결**:
    - `react-native-google-mobile-ads`를 `16.3.4`로 고정하여 `play-services-ads:25.4.0`의 Kotlin 2.3.0 메타데이터 충돌 방지
    - `expo-build-properties`에서 `kotlinVersion: 2.1.20`을 설정하여 Expo SDK 57의 `io.github.lukmccall.pika:pika-compiler:0.3.2-2.1.20` 결합 의존성 오류(pika-compiler:0.3.2-2.1.21 부재)를 완전히 해결
+   - `androidx.core:core:1.17.0`의 AAR 요구사항에 맞추어 `compileSdkVersion: 36`, `buildToolsVersion: 36.0.0`으로 설정 (targetSdkVersion은 35 유지)
    - 비표준 Gradle 치환 플러그인을 제거하고 Expo Managed Workflow 표준 파이프라인으로 복원

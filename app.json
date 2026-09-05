@@ -6,12 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0F172A"
-    },
+
     "ios": {
       "supportsTablet": true
     },
@@ -46,7 +41,15 @@
           }
         }
       ],
-      "./plugins/withKotlinGradlePluginVersion"
+      "./plugins/withKotlinGradlePluginVersion",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0F172A"
+        }
+      ]
     ],
     "extra": {
       "eas": {

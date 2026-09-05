@@ -12,7 +12,7 @@ import { LottoBall } from '../components/LottoBall';
 import { AiAnalysisBridgeModal } from '../components/AiAnalysisBridgeModal';
 import { getOfflineDbCount } from '../services/lottoApi';
 import { COLORS } from '../constants/theme';
-import { Sparkles, ShieldAlert, RotateCcw, BookmarkPlus } from 'lucide-react-native';
+import { Sparkles, ShieldAlert, RotateCcw, BookmarkPlus, CheckCircle2 } from 'lucide-react-native';
 
 export const ResultScreen: React.FC = () => {
   const { 
@@ -23,7 +23,8 @@ export const ResultScreen: React.FC = () => {
     runQuantAnalysis,
     isEngineRunning,
     isDarkMode,
-    saveNumberCombination
+    saveNumberCombination,
+    userFilters
   } = useLotto();
 
   const [showBridgeModal, setShowBridgeModal] = useState<boolean>(false);
@@ -79,6 +80,33 @@ export const ResultScreen: React.FC = () => {
           <Text style={styles.reGenerateBtnText}>재추출</Text>
         </TouchableOpacity>
       </View>
+
+      {/* 사용자 필터 적용 현황 배너 */}
+      {((userFilters?.excludedNums && userFilters.excludedNums.length > 0) ||
+        (userFilters?.includedNums && userFilters.includedNums.length > 0)) && (
+        <View style={styles.appliedFilterBanner}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <CheckCircle2 color={COLORS.neonGreen} size={15} style={{ marginRight: 6 }} />
+            <Text style={styles.appliedFilterBannerTitle}>사용자 맞춤 필터 100% 반영 완료</Text>
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {userFilters.excludedNums && userFilters.excludedNums.length > 0 && (
+              <View style={styles.appliedFilterBadgeExcluded}>
+                <Text style={styles.appliedFilterBadgeExcludedText}>
+                  🚫 제외수 {userFilters.excludedNums.length}개 100% 소각: [{userFilters.excludedNums.join(', ')}]
+                </Text>
+              </View>
+            )}
+            {userFilters.includedNums && userFilters.includedNums.length > 0 && (
+              <View style={styles.appliedFilterBadgeIncluded}>
+                <Text style={styles.appliedFilterBadgeIncludedText}>
+                  ⭐ 포함수 {userFilters.includedNums.length}개 장착: [{userFilters.includedNums.join(', ')}]
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* 퀀트 필터 통계 카드 */}
       {pipelineStats && (
@@ -376,6 +404,45 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  appliedFilterBanner: {
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  appliedFilterBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.neonGreen,
+  },
+  appliedFilterBadgeExcluded: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  appliedFilterBadgeExcludedText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.neonRed,
+  },
+  appliedFilterBadgeIncluded: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  appliedFilterBadgeIncludedText: {
+    fontSize: 11,
     fontWeight: '700',
     color: COLORS.primary,
   }

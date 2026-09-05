@@ -193,10 +193,11 @@ export const MobileSlipModal: React.FC<{ visible: boolean; onClose: () => void }
 // 3. 고급 필터 설정 모달 (AI 자동 최적화 2.5초 실시간 시각화 탑재)
 // ---------------------------------------------------------------------------
 export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => void }> = ({ visible, onClose }) => {
+  const { userFilters, updateUserFilters } = useLotto();
+
   const [activeTab, setActiveTab] = useState<'basic' | 'steps'>('basic');
-  const [includedBalls, setIncludedBalls] = useState<number[]>([]);
-  // 초기 제외수 빈 배열 세팅! (초기 사용 시 아무것도 설정되어 있지 않음)
-  const [excludedBalls, setExcludedBalls] = useState<number[]>([]);
+  const [includedBalls, setIncludedBalls] = useState<number[]>(userFilters.includedNums || []);
+  const [excludedBalls, setExcludedBalls] = useState<number[]>(userFilters.excludedNums || []);
 
   const [numberPickerMode, setNumberPickerMode] = useState<'included' | 'excluded' | null>(null);
 
@@ -211,22 +212,38 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
     'Step 3/3: AC 7이상, 홀짝 3:3 수급 균형 및 제외수 6개 자동 수렴 완수!'
   ];
 
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({
-    '번호 추출 방법': '최근 출현 (AI 최적화)',
-    '과거 당첨 제외 필터': '3등까지 제외',
-    '이월수 제외 필터': '2회 이상 제외',
-    '연속 번호 제외 필터': '2개 연속 이상 제외',
-    '번호합 범위 필터': '범위 : 85 ~ 122',
-    '앞수합 범위 필터': '범위 : 20 ~ 40',
-    '뒷수합 범위 필터': '범위 : 70 ~ 105',
-    '첫수합 범위 필터': '범위 : 5 ~ 10',
-    '끝수합 범위 필터': '범위 : 20 ~ 35',
-    'AC값 범위 필터': '7이상',
-    '홀 : 짝 비율 필터': '홀 : 짝 = 3 : 3 (표준)',
-    '동일 색상 제한 필터': '동일 색상 최대 4개',
-  });
+  const [filterValues, setFilterValues] = useState<Record<string, string>>(
+    userFilters.filterValues || {
+      '번호 추출 방법': '최근 출현 (AI 최적화)',
+      '과거 당첨 제외 필터': '3등까지 제외',
+      '이월수 제외 필터': '2회 이상 제외',
+      '연속 번호 제외 필터': '2개 연속 이상 제외',
+      '번호합 범위 필터': '범위 : 85 ~ 122',
+      '앞수합 범위 필터': '범위 : 20 ~ 40',
+      '뒷수합 범위 필터': '범위 : 70 ~ 105',
+      '첫수합 범위 필터': '범위 : 5 ~ 10',
+      '끝수합 범위 필터': '범위 : 20 ~ 35',
+      'AC값 범위 필터': '7이상',
+      '홀 : 짝 비율 필터': '홀 : 짝 = 3 : 3 (표준)',
+      '동일 색상 제한 필터': '동일 색상 최대 4개',
+    }
+  );
 
   const [pickerKey, setPickerKey] = useState<string | null>(null);
+
+  // 모달이 열릴 때 context의 현재 필터 값으로 로컬 상태 동기화
+  useEffect(() => {
+    if (visible) {
+      setIncludedBalls(userFilters.includedNums || []);
+      setExcludedBalls(userFilters.excludedNums || []);
+      if (userFilters.filterValues) {
+        setFilterValues({ ...userFilters.filterValues });
+      }
+      if (userFilters.stepToggles) {
+        setStepToggles({ ...userFilters.stepToggles });
+      }
+    }
+  }, [visible, userFilters]);
 
   // 홀짝 비율 5:1, 1:5, 6:0, 0:6 포함 및 수치 옵션 정밀 세분화
   const filterOptionsMap: Record<string, string[]> = {
@@ -250,14 +267,16 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
       '홀 : 짝 = 0 : 6 (극단)', 
       '전체 비율'
     ],
-    '동일 색상 제한 필터': ['동일 색상 최대 4개', '동일 색상 최대 3개', '동일 색상 최대 5개', '제한 안함']
+    '동일 색상 제한 필터': ['동일 색상 최대 4개', '동일 색상 최대 3개', '동일 색상 최대 5개', '제외 안함']
   };
 
-  const [stepToggles, setStepToggles] = useState<Record<number, boolean>>({
-    1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true,
-    9: true, 10: true, 11: true, 12: true, 13: true, 14: true, 15: true, 16: true,
-    17: true, 18: true, 19: true, 20: true, 21: true, 22: true, 23: true
-  });
+  const [stepToggles, setStepToggles] = useState<Record<number, boolean>>(
+    userFilters.stepToggles || {
+      1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true,
+      9: true, 10: true, 11: true, 12: true, 13: true, 14: true, 15: true, 16: true,
+      17: true, 18: true, 19: true, 20: true, 21: true, 22: true, 23: true
+    }
+  );
 
   const toggleStep = (stepNo: number) => {
     setStepToggles(prev => ({ ...prev, [stepNo]: !prev[stepNo] }));
@@ -279,7 +298,7 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
     const t2 = setTimeout(() => setAiStepIndex(2), 1600);
     const t3 = setTimeout(() => {
       setIsAiAnalyzing(false);
-      setFilterValues({
+      const newFilterValues = {
         '번호 추출 방법': '최근 출현 (AI 최적화)',
         '과거 당첨 제외 필터': '3등까지 제외',
         '이월수 제외 필터': '2회 이상 제외',
@@ -290,13 +309,19 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
         '첫수합 범위 필터': '범위 : 5 ~ 10',
         '끝수합 범위 필터': '범위 : 20 ~ 35',
         'AC값 범위 필터': '7이상',
-        '홀 : 짝 비율 필터': '홀 : 짝 = 3 : 3',
+        '홀 : 짝 비율 필터': '홀 : 짝 = 3 : 3 (표준)',
         '동일 색상 제한 필터': '동일 색상 최대 4개',
+      };
+      const newExcluded = [6, 13, 20, 27, 34, 41];
+      setFilterValues(newFilterValues);
+      setExcludedBalls(newExcluded);
+      updateUserFilters({
+        excludedNums: newExcluded,
+        filterValues: newFilterValues
       });
-      setExcludedBalls([6, 13, 20, 27, 34, 41]);
       Alert.alert(
         '🤖 AI 필터 분석 최적화 완수',
-        '1,239개 최신 DB 패턴 분석을 완료하여 최적 필터 수치가 자동 세팅되었습니다!'
+        '1,239개 최신 DB 패턴 분석을 완료하여 최적 필터 수치가 자동 세팅 및 저장되었습니다!'
       );
     }, 2500);
 
@@ -306,6 +331,7 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
       clearTimeout(t3);
     };
   };
+
 
   const handlePickNumber = (num: number) => {
     if (numberPickerMode === 'included') {
@@ -540,7 +566,16 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
             <TouchableOpacity 
               style={styles.applyFilterBtn} 
               onPress={() => {
-                Alert.alert('필터 적용 완료', '설정하신 필터 수치, 포함/제외수 및 Step 1~23 스위치가 퀀트 엔진에 100% 반영되었습니다.');
+                updateUserFilters({
+                  includedNums: includedBalls,
+                  excludedNums: excludedBalls,
+                  filterValues,
+                  stepToggles,
+                });
+                Alert.alert(
+                  '필터 적용 완료',
+                  `설정하신 제외수(${excludedBalls.length}개), 포함수(${includedBalls.length}개) 및 필터 수치가 퀀트 엔진에 100% 반영되었습니다.`
+                );
                 onClose();
               }}
             >

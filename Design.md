@@ -246,3 +246,13 @@ lotto_analizer/
    - `version`: `"1.0.2"`
    - `versionCode`: `3` (Google Play Console에서 기등록 시도된 2번을 넘어 즉시 업로드 가능하도록 증분)
    - **빌드 성공 결과물 (API 36 준수)**: [ACxTk8SCnXg-yPEJaob7E-r_sOV0wP7tM-mbBVHn9OY.aab](https://expo.dev/artifacts/eas/ACxTk8SCnXg-yPEJaob7E-r_sOV0wP7tM-mbBVHn9OY.aab)
+
+---
+
+## 18. 구글 플레이스토어 공식 출시용 재빌드 (v1.0.3, versionCode: 4)
+1. **버전 및 빌드 번호 증분**:
+   - `app.json`: `version: "1.0.3"`, `android.versionCode: 4`
+2. **빌드 설정 유지**:
+   - `targetSdkVersion: 36`, `compileSdkVersion: 36`
+   - `USE_TEST_ADS = false` (실제 상용 AdMob ID 활성화)
+   - AAB (Android App Bundle) 프로덕션 스토어 규격

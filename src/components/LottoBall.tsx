@@ -1,5 +1,11 @@
+/**
+ * @file LottoBall.tsx
+ * @description 로또 볼 3D 입체 렌더링 컴포넌트
+ * 번호별 5색 공 테마 및 하이라이트/그림자 효과 제공 (웹 boxShadow 호환)
+ */
+
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 
 interface LottoBallProps {
   number: number;
@@ -60,12 +66,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    // 모바일 GPU 래스터라이즈 부담 최소화 (경량 섀도우)
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 1.5,
-    elevation: 1,
+    // 모바일 GPU 래스터라이즈 부담 최소화 및 웹 boxShadow 호환
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 1px 1.5px rgba(0, 0, 0, 0.15)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.15,
+        shadowRadius: 1.5,
+        elevation: 1,
+      }
+    }),
   },
   ballHighlight: {
     position: 'absolute',

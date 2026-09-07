@@ -1,5 +1,11 @@
+/**
+ * @file QuantCard.tsx
+ * @description 퀀트 분석 생성 게임 카드 컴포넌트
+ * 6개 번호 볼, 매칭 지표 태그 및 입체 스타일 렌더링 (웹 boxShadow 호환)
+ */
+
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { QuantGame } from '../types/lotto';
 import { LottoBall } from './LottoBall';
 import { COLORS } from '../constants/theme';
@@ -79,11 +85,18 @@ const styles = StyleSheet.create({
     borderWidth: 1.2,
     padding: 16,
     marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 3,
+      }
+    }),
   },
   headerRow: {
     flexDirection: 'row',

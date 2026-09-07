@@ -234,3 +234,4 @@ lotto_analizer/
    - 빌드 대상: Android App Bundle (`.aab`)
    - 프로필: `production` (`distribution: "store"`)
    - Expo Managed Workflow 및 Gradle 8.13 / Kotlin 2.1.20 / compileSdkVersion 36 / targetSdkVersion 35 최신 빌드 파이프라인 적용.
+   - **빌드 성공 결과물**: [sIPBKO4UAFJ4aKwvZ-_A039HqH48STSFO9K8vVDLpyU.aab](https://expo.dev/artifacts/eas/sIPBKO4UAFJ4aKwvZ-_A039HqH48STSFO9K8vVDLpyU.aab)

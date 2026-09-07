@@ -222,3 +222,15 @@ lotto_analizer/
    - **`App.tsx shadow*` 및 `pointerEvents` 경고**: `headerStyle`의 `shadowOpacity`를 `Platform.select`로 분기하여 웹에서는 `boxShadow: 'none'`을 적용하여 해결. `pointerEvents`는 React Navigation 라이브러리 내부 prop deprecation 알림.
    - **`lottoSyncService.ts:85 Failed to fetch` (CORS 제한)**: 웹 브라우저 환경에서는 CORS 보안 제약으로 외부 도메인 직접 통신이 차단되므로 `Platform.OS === 'web'` 시 안전하게 스킵 처리하고 1~1240회 내장 DB를 즉시 사용하도록 최적화.
    - **`Blocked aria-hidden on an element because its descendant retained focus`**: 모달 오픈 시 직전 클릭된 요소의 포커스를 `document.activeElement?.blur()`로 안전하게 해제하여 WAI-ARIA 접근성 경고 완벽 방지.
+
+---
+
+## 16. 구글 플레이스토어 출시 빌드 (v1.0.1, versionCode: 2) 및 상용 AdMob 배포
+1. **버전 및 빌드 번호 증분**:
+   - `app.json`: `version: "1.0.1"`, `android.versionCode: 2`로 설정하여 Google Play Console 업로드 시 중복 버전 에러 원천 차단.
+2. **AdMob 실제 상용 광고 송출 전환**:
+   - `src/services/adMobService.ts`: `USE_TEST_ADS = false`로 변경하여 사용자에게 실제 발급된 배너, 전면, 앱오프닝 광고 단위 ID 송출 활성화.
+3. **EAS Production 빌드 파이프라인 (AAB)**:
+   - 빌드 대상: Android App Bundle (`.aab`)
+   - 프로필: `production` (`distribution: "store"`)
+   - Expo Managed Workflow 및 Gradle 8.13 / Kotlin 2.1.20 / compileSdkVersion 36 / targetSdkVersion 35 최신 빌드 파이프라인 적용.

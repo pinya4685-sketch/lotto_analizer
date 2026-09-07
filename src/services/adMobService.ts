@@ -32,7 +32,7 @@ export const ADMOB_TEST_IDS = {
  * - true: 구글 공식 테스트 광고 송출 (계정 인증 전, 앱 미출시, 앱플레이어 테스트 시 필수로 true 권장)
  * - false: 실제 발급받으신 사용자님 AdMob 광고 송출 (플레이스토어 심사 통과 및 계정 인증 완료 후 전환)
  */
-export const USE_TEST_ADS = true;
+export const USE_TEST_ADS = false;
 
 // 각 광고 단위별 현재 사용할 ID 반환 함수
 export function getBannerAdUnitId(): string {

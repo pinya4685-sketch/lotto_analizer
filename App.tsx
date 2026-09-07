@@ -1,5 +1,11 @@
+/**
+ * @file App.tsx
+ * @description 로또 분석기 최상위 메인 엔트리포인트
+ * 전역 Provider, 하단 네비게이션 탭 및 플랫폼별 스타일 적용
+ */
+
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import { View, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -42,8 +48,15 @@ function MainNavigation() {
               backgroundColor: headerBg,
               borderBottomWidth: 1,
               borderBottomColor: headerBorder,
-              elevation: 0,
-              shadowOpacity: 0,
+              ...Platform.select({
+                web: {
+                  boxShadow: 'none',
+                },
+                default: {
+                  elevation: 0,
+                  shadowOpacity: 0,
+                },
+              }),
             },
             headerTitleStyle: {
               color: headerText,

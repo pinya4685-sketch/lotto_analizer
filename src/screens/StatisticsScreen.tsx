@@ -337,12 +337,34 @@ const CompactUniversalDrawRow = React.memo(({
   let badgeBg = 'rgba(37, 99, 235, 0.12)';
   let showBonus = true;
 
-  // 3. 홀수-짝수 통계
+  // 3. 홀수-짝수 통계 (1:5/5:1, 6:0/0:6 비율 특수 색상 시각적 구분)
   if (statId === 3) {
     const { oddCount, evenCount } = getOddEvenInfo(item.nums);
-    badgeText = `홀 ${oddCount} : 짝 ${evenCount}`;
-    badgeColor = oddCount === 3 ? COLORS.neonGreen : COLORS.primary;
-    badgeBg = oddCount === 3 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(37, 99, 235, 0.12)';
+    
+    // 6:0 또는 0:6 (올홀수 / 올짝수 극단치 비율 -> 강렬한 레드)
+    if (oddCount === 6 || oddCount === 0) {
+      badgeText = `홀 ${oddCount} : 짝 ${evenCount} (극단치)`;
+      badgeColor = '#EF4444';
+      badgeBg = 'rgba(239, 68, 68, 0.2)';
+    } 
+    // 5:1 또는 1:5 (불균형 희귀 비율 -> 선명한 오렌지/앰버)
+    else if (oddCount === 5 || oddCount === 1) {
+      badgeText = `홀 ${oddCount} : 짝 ${evenCount}`;
+      badgeColor = '#F59E0B';
+      badgeBg = 'rgba(245, 158, 11, 0.18)';
+    } 
+    // 3:3 (완전 균형 표준 비율 -> 네온 그린)
+    else if (oddCount === 3) {
+      badgeText = `홀 3 : 짝 3 (표준)`;
+      badgeColor = COLORS.neonGreen;
+      badgeBg = 'rgba(16, 185, 129, 0.15)';
+    } 
+    // 4:2 또는 2:4 (일반 표준 비율 -> 블루)
+    else {
+      badgeText = `홀 ${oddCount} : 짝 ${evenCount}`;
+      badgeColor = COLORS.primary;
+      badgeBg = 'rgba(37, 99, 235, 0.12)';
+    }
   } 
   // 4. 연속 번호 통계
   else if (statId === 4) {

@@ -203,3 +203,22 @@ lotto_analizer/
    - `.gitignore`에 `.env*` 및 인증서/키 파일(`.key`, `.pem`, `.p8`, `.p12`, `.jks`) 패턴 차단 강화.
 3. **웹 호환성 최적화**:
    - `AiAnalysisBridgeModal.tsx`: React Native Web 환경 대응을 위해 `useNativeDriver: Platform.OS !== 'web'` 조건부 처리 적용 (콘솔 경고 해소).
+
+---
+
+## 15. 다크모드 기본 적용, AI 순차 모션 및 웹 콘솔 경고 완전 해소
+1. **다크모드 기본값 적용**:
+   - `LottoContext.tsx`의 `isDarkMode` 기본값을 `true`로 설정하여 앱 최초 실행 시 눈이 편안한 프리미엄 슬레이트 다크 테마(`#0F172A`)로 렌더링.
+2. **AI 번호 생성 브릿지 스텝 순서별 순차 처리 모션**:
+   - `AiAnalysisBridgeModal.tsx`의 4단계 퀀트 분석(Step 1: 빅데이터 스캔 ➔ Step 2: 킬스위치 ➔ Step 3: 23개 필터링 ➔ Step 4: 10게임 수렴)을 타이머 및 애니메이션과 동기화.
+   - 각 스텝마다 [대기: 점선], [진행 중: 스피너 + 네온 뱃지], [완료: 녹색 체크마크 + 완료 뱃지]가 순서대로 착착 활성화되는 직관적인 순차 모션 제공.
+3. **홀수-짝수 통계 특수 비율 시각적 구분**:
+   - `StatisticsScreen.tsx`의 3번 카테고리(홀짝 출현)에서:
+     - `6:0`, `0:6` (극단치 올홀수/올짝수): 강렬한 빨간색(`badgeColor: '#EF4444'`, `badgeBg: 'rgba(239, 68, 68, 0.2)'`) 뱃지 적용.
+     - `1:5`, `5:1` (희귀 불균형 비율): 선명한 오렌지/앰버(`badgeColor: '#F59E0B'`, `badgeBg: 'rgba(245, 158, 11, 0.18)'`) 뱃지 적용.
+     - `3:3` (표준 균형 비율): 네온 그린(`COLORS.neonGreen`) 뱃지 적용.
+4. **웹 콘솔 F12 경고 및 통신 오류 분석 & 해결**:
+   - **`contentscript.js` EventEmitter 메모리 누수 & `ObjectMultiplex` 고아 데이터**: 사용자 Chrome 브라우저의 MetaMask(메타마스크) 지갑 확장 프로그램 내부 스트림 통신 이슈로, 시크릿 창에서는 미발생함을 확인.
+   - **`App.tsx shadow*` 및 `pointerEvents` 경고**: `headerStyle`의 `shadowOpacity`를 `Platform.select`로 분기하여 웹에서는 `boxShadow: 'none'`을 적용하여 해결. `pointerEvents`는 React Navigation 라이브러리 내부 prop deprecation 알림.
+   - **`lottoSyncService.ts:85 Failed to fetch` (CORS 제한)**: 웹 브라우저 환경에서는 CORS 보안 제약으로 외부 도메인 직접 통신이 차단되므로 `Platform.OS === 'web'` 시 안전하게 스킵 처리하고 1~1240회 내장 DB를 즉시 사용하도록 최적화.
+   - **`Blocked aria-hidden on an element because its descendant retained focus`**: 모달 오픈 시 직전 클릭된 요소의 포커스를 `document.activeElement?.blur()`로 안전하게 해제하여 WAI-ARIA 접근성 경고 완벽 방지.

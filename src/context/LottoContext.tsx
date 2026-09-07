@@ -89,7 +89,7 @@ export const LottoProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [6, 16, 23, 26, 33, 45],
     [2, 7, 20, 25, 37, 40]
   ]);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [userFilters, setUserFilters] = useState<UserFilterSettings>(DEFAULT_USER_FILTERS);
 
   const updateUserFilters = (newFilters: Partial<UserFilterSettings>) => {

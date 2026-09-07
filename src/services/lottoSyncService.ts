@@ -5,6 +5,7 @@
  * - 신규 회차가 발표되면 백그라운드에서 안전하게 데이터를 패치하여 앱의 로컬 DB 및 State에 주입합니다.
  */
 
+import { Platform } from 'react-native';
 import { LottoRecord } from '../data/lottoData';
 import { LottoDraw } from '../types/lotto';
 
@@ -39,6 +40,11 @@ interface DhLotteryApiResponse {
  * @returns {Promise<LottoDraw | null>} 성공 시 로또 상세 정보, 아직 추첨 전이거나 오류 시 null
  */
 export async function fetchDrawFromOfficialApi(drawNo: number): Promise<LottoDraw | null> {
+  // 웹 브라우저 환경에서는 CORS 보안 제한으로 인해 브라우저 직접 통신이 차단되므로 안전하게 스킵
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
   try {
     const timestamp = Date.now();
     const targetUrl = `${DHLOTTERY_API_URL}?srchLtEpsd=${drawNo}&_=${timestamp}`;

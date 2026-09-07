@@ -235,3 +235,13 @@ lotto_analizer/
    - 프로필: `production` (`distribution: "store"`)
    - Expo Managed Workflow 및 Gradle 8.13 / Kotlin 2.1.20 / compileSdkVersion 36 / targetSdkVersion 35 최신 빌드 파이프라인 적용.
    - **빌드 성공 결과물**: [sIPBKO4UAFJ4aKwvZ-_A039HqH48STSFO9K8vVDLpyU.aab](https://expo.dev/artifacts/eas/sIPBKO4UAFJ4aKwvZ-_A039HqH48STSFO9K8vVDLpyU.aab)
+
+---
+
+## 17. 구글 플레이스토어 최신 API 레벨(targetSdkVersion 36) 요구사항 충족 (v1.0.2, versionCode: 3)
+1. **Google Play Console 정책 오류 해결**:
+   - 구글 플레이의 최신 정책에 따라 `targetSdkVersion`을 기존 35에서 **`36`**으로 격상.
+   - `app.json`: `compileSdkVersion: 36`, `targetSdkVersion: 36`으로 일치화하여 최신 안드로이드 보안/성능 규격 100% 준수.
+2. **버전 및 빌드 번호 증분**:
+   - `version`: `"1.0.2"`
+   - `versionCode`: `3` (Google Play Console에서 기등록 시도된 2번을 넘어 즉시 업로드 가능하도록 증분)

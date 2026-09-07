@@ -1,3 +1,9 @@
+/**
+ * @file AiAnalysisBridgeModal.tsx
+ * @description AI 딥러닝 퀀트 분석 진행 애니메이션 브릿지 모달
+ * 빅데이터(1240개 회차) 연산 및 필터 파이프라인 단계별 시각적 피드백 제공
+ */
+
 import React, { useEffect, useState, useRef } from 'react';
 import { 
   Modal, 
@@ -90,7 +96,7 @@ export const AiAnalysisBridgeModal: React.FC<AiAnalysisBridgeModalProps> = ({
 
           <Text style={styles.titleText}>AI 딥러닝 퀀트 분석 가동 중</Text>
           <Text style={styles.subText}>
-            V26.1 MARKOV-QUANT (총 {totalDbCount || 1239}개 회차 빅데이터 분석)
+            V26.1 MARKOV-QUANT (총 {totalDbCount || 1240}개 회차 빅데이터 분석)
           </Text>
 
           {/* 프로그레스 바 */}

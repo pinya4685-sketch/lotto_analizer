@@ -1,3 +1,9 @@
+/**
+ * @file FeatureModals.tsx
+ * @description 로또 부가 기능 모달 모음 컴포넌트
+ * 수동 입력, 필터 설정, 1~1240회 역대 당첨번호 조회, QR 스캐너, 저장 번호 관리, 판매점 지도, 데이터 백업 등
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Modal, 
@@ -436,7 +442,7 @@ export const FilterSettingModal: React.FC<{ visible: boolean; onClose: () => voi
             {/* [🤖 AI 필터 자동 추천] 버튼 */}
             <TouchableOpacity style={styles.aiRecommendBtn} onPress={handleAiAutoRecommend}>
               <Bot color="#FFF" size={20} style={{ marginRight: 6 }} />
-              <Text style={styles.aiRecommendText}>🤖 AI 자동 최적화 추천 (1239개 DB 스캔)</Text>
+              <Text style={styles.aiRecommendText}>🤖 AI 자동 최적화 추천 ({OFFLINE_DB.length}개 DB 스캔)</Text>
             </TouchableOpacity>
 
             {/* 필터 탭 */}
@@ -777,11 +783,11 @@ export const SavedNumbersModal: React.FC<{ visible: boolean; onClose: () => void
 };
 
 // ---------------------------------------------------------------------------
-// 5. 당첨번호 확인 모달 (WinningHistoryModal - 전체 1,239개 당첨번호 리스트업)
+// 5. 당첨번호 확인 모달 (WinningHistoryModal - 전체 1,240개 당첨번호 리스트업)
 // ---------------------------------------------------------------------------
 export const WinningHistoryModal: React.FC<{ visible: boolean; onClose: () => void }> = ({ visible, onClose }) => {
   const [searchDrw, setSearchDrw] = useState('');
-  const [isAscending, setIsAscending] = useState(false); // false: 최신순(1239->1)
+  const [isAscending, setIsAscending] = useState(false); // false: 최신순(1240->1)
 
   const filtered = OFFLINE_DB.filter(d => {
     if (!searchDrw.trim()) return true;
@@ -794,7 +800,7 @@ export const WinningHistoryModal: React.FC<{ visible: boolean; onClose: () => vo
     <Modal visible={visible} animationType="slide" transparent={true}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          <ModalHeader title="역대 당첨번호 전체 리스트 (1~1239회)" onClose={onClose} />
+          <ModalHeader title={`역대 당첨번호 전체 리스트 (1~${OFFLINE_DB[0]?.draw || 1240}회)`} onClose={onClose} />
           
           <ScrollView contentContainerStyle={{ padding: 16 }}>
             {/* 상단 회차 검색 및 정렬 스위치 */}
@@ -805,7 +811,7 @@ export const WinningHistoryModal: React.FC<{ visible: boolean; onClose: () => vo
                   value={searchDrw}
                   onChangeText={setSearchDrw}
                   keyboardType="number-pad"
-                  placeholder="회차 검색 (예: 1239, 1)"
+                  placeholder={`회차 검색 (예: ${OFFLINE_DB[0]?.draw || 1240}, 1)`}
                   placeholderTextColor={COLORS.textMuted}
                 />
               </View>
@@ -954,8 +960,8 @@ export const DataBackupModal: React.FC<{ visible: boolean; onClose: () => void }
       <View style={styles.modalContainer}>
         <ModalHeader title="오프라인 DB & 백업 관리" onClose={onClose} />
         <ScrollView contentContainerStyle={{ padding: 16 }}>
-          <Text style={styles.modalSubText}>로컬 1239개 DB 및 개인 생성 이력을 안전하게 관리합니다.</Text>
-          <TouchableOpacity style={styles.backupBtn} onPress={() => Alert.alert('백업 성공', '1239개 로컬 DB 및 설정값이 백업 파일로 내보내졌습니다.')}>
+          <Text style={styles.modalSubText}>로컬 {OFFLINE_DB.length}개 DB 및 개인 생성 이력을 안전하게 관리합니다.</Text>
+          <TouchableOpacity style={styles.backupBtn} onPress={() => Alert.alert('백업 성공', `${OFFLINE_DB.length}개 로컬 DB 및 설정값이 백업 파일로 내보내졌습니다.`)}>
             <Database color="#FFF" size={18} style={{ marginRight: 6 }} />
             <Text style={{ color: '#FFF', fontWeight: '800' }}>내보내기 (JSON 백업)</Text>
           </TouchableOpacity>

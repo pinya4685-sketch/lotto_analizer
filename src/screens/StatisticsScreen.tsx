@@ -1,7 +1,7 @@
 /**
  * 통계 자료 리스트 및 12가지 세부 통계 화면 (StatisticsScreen)
- * - 1. 번호별 출현 횟수 통계: 1~45번 1239회 누적 출현 랭킹 및 횟수 시각화
- * - 2. 연속 미출현 번호 통계: 최신 1239회 기준 번호별 연속 미출현 주수(Cold numbers) 시각화
+ * - 1. 번호별 출현 횟수 통계: 1~45번 1240회 누적 출현 랭킹 및 횟수 시각화
+ * - 2. 연속 미출현 번호 통계: 최신 1240회 기준 번호별 연속 미출현 주수(Cold numbers) 시각화
  * - 3. 홀수-짝수 출현 통계: 각 회차별 홀:짝 비율(예: 홀 3 : 짝 3) 및 분포 뱃지
  * - 4. 연속 번호 통계: 각 회차별 연속된 번호(ex: 11-12) 하이라이트 및 쌍 수 집계
  * - 5. 이월수 통계: 직전 회차 이월 번호 하이라이트
@@ -45,8 +45,8 @@ import { LottoRecord } from '../data/lottoData';
 
 // ── 12가지 통계 카테고리 정적 목록 ──
 const STATS_CATEGORIES = [
-  { id: 1, title: '1. 번호별 출현 횟수 통계', desc: '1~45번 각 번호별 1239개 회차 누적 출현 횟수 랭킹' },
-  { id: 2, title: '2. 연속 미출현 번호 통계', desc: '최신 1239회 기준 각 번호별 연속 미출현 주수 (Cold Numbers)' },
+  { id: 1, title: '1. 번호별 출현 횟수 통계', desc: '1~45번 각 번호별 1240개 회차 누적 출현 횟수 랭킹' },
+  { id: 2, title: '2. 연속 미출현 번호 통계', desc: '최신 1240회 기준 각 번호별 연속 미출현 주수 (Cold Numbers)' },
   { id: 3, title: '3. 홀수 - 짝수 출현 통계', desc: '각 회차별 홀수:짝수 비율 (3:3, 4:2, 2:4 등) 분석' },
   { id: 4, title: '4. 연속 번호 통계', desc: '연속된 번호 (ex: 11, 12) 출현 회차 및 연속수 하이라이트' },
   { id: 5, title: '5. 이월수 통계', desc: '직전 회차에서 당 회차로 이월된 공만 밝게 하이라이트 딤처리' },
@@ -96,7 +96,7 @@ const NUMBER_FREQUENCIES: NumberFreqItem[] = (() => {
 })();
 
 // ─────────────────────────────────────────────────────────────
-// [데이터 집계 2] 최신 회차(1239회) 기준 번호별 연속 미출현 주수 계산
+// [데이터 집계 2] 최신 회차(1240회) 기준 번호별 연속 미출현 주수 계산
 // ─────────────────────────────────────────────────────────────
 interface ColdNumberItem {
   num: number;
@@ -105,7 +105,7 @@ interface ColdNumberItem {
 }
 
 const COLD_NUMBERS: ColdNumberItem[] = (() => {
-  const latestDrawNo = OFFLINE_DB[0]?.draw || 1239;
+  const latestDrawNo = OFFLINE_DB[0]?.draw || 1240;
   const lastDraws: { [key: number]: number } = {};
 
   for (let i = 1; i <= 45; i++) {
@@ -292,7 +292,7 @@ const ColdNumberRow = React.memo(({
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
           <Text style={[styles.statNumLabel, { color: dynamicText }]}>{item.num}번 공</Text>
           <Text style={[styles.statCountText, { color: isZero ? COLORS.neonGreen : COLORS.textSecondary }]}>
-            {isZero ? '최신 1239회차 당첨' : `마지막 출현: ${item.lastDraw}회`}
+            {isZero ? `최신 ${OFFLINE_DB[0]?.draw || 1240}회차 당첨` : `마지막 출현: ${item.lastDraw}회`}
           </Text>
         </View>
         <View style={styles.progressTrack}>
@@ -565,7 +565,7 @@ export const StatisticsScreen: React.FC = () => {
 
     // 시계열 순서로 반전 (과거 ➔ 최신 회차)
     const chronologicalSeries = [...seriesData].reverse();
-    const latestItem = seriesData[0]; // 1239회 최신 회차
+    const latestItem = seriesData[0]; // 1240회 최신 회차
 
     const getTrendBadge = (trend: string, diff: number, unit: string) => {
       if (trend === 'up') {
@@ -782,7 +782,7 @@ export const StatisticsScreen: React.FC = () => {
     return (
       <ScrollView contentContainerStyle={{ alignItems: 'center', padding: 16, paddingBottom: 140 }}>
         <Text style={[styles.historyListSectionTitle, { color: dynamicText, alignSelf: 'flex-start' }]}>
-          실제 로또 OMR 용지 패턴 시각화 (1239개 회차)
+          실제 로또 OMR 용지 패턴 시각화 ({OFFLINE_DB.length}개 회차)
         </Text>
 
         <View style={styles.omrVisualPanel}>
@@ -872,7 +872,7 @@ export const StatisticsScreen: React.FC = () => {
             >
               <ArrowUpDown color={COLORS.primary} size={14} style={{ marginRight: 4 }} />
               <Text style={[styles.sortBtnText, { color: dynamicText }]}>
-                {isAscending ? '과거순 (1회~)' : '최신순 (1239회~)'}
+                {isAscending ? '과거순 (1회~)' : `최신순 (${OFFLINE_DB[0]?.draw || 1240}회~)`}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1033,7 +1033,7 @@ export const StatisticsScreen: React.FC = () => {
   return (
     <ScrollView style={[styles.container, { backgroundColor: dynamicBg }]} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: dynamicText }]}>12가지 세부 통계 자료 리스트 (총 1239개 회차)</Text>
+        <Text style={[styles.headerTitle, { color: dynamicText }]}>12가지 세부 통계 자료 리스트 (총 {OFFLINE_DB.length}개 회차)</Text>
         <Text style={styles.headerSubtitle}>
           통계 카드를 터치하시면 번호별 출현율, 연속 미출현수, 홀짝 비율, 연속 번호 등 전문 퀀트 데이터를 즉각 확인하실 수 있습니다.
         </Text>

@@ -1,3 +1,9 @@
+/**
+ * @file lottoData.ts
+ * @description 역대 로또 6/45 당첨 번호 오프라인 데이터셋 (1회차 ~ 1240회차)
+ * 각 회차별 당첨 번호(6개 오름차순 정렬)와 보너스 번호를 포함합니다.
+ */
+
 export interface LottoRecord {
   draw: number;
   nums: number[];
@@ -5,6 +11,18 @@ export interface LottoRecord {
 }
 
 export const LOTTO_DATA: LottoRecord[] = [
+  {
+    "draw": 1240,
+    "nums": [
+      11,
+      13,
+      19,
+      20,
+      31,
+      44
+    ],
+    "bonus": 27
+  },
   {
     "draw": 1239,
     "nums": [

@@ -1,3 +1,9 @@
+/**
+ * @file HomeScreen.tsx
+ * @description 로또 메인 홈 화면 컴포넌트
+ * 최신 1240회차 당첨 번호 배너, 주요 기능 그리드 메뉴 및 AI 퀀트 분석 모달 연동
+ */
+
 import React, { useState } from 'react';
 import { 
   View, 
@@ -163,7 +169,7 @@ export const HomeScreen: React.FC = ({ navigation }: any) => {
       {/* 홈화면 상단: 최신회차 당첨번호 하나만 표기 */}
       <View style={styles.resultBannerCard}>
         <Text style={styles.bannerHeaderTitle}>
-          최신 {latestDraw.drwNo || 1239}회차 당첨결과 <Text style={styles.bannerDate}>(2026.08.29)</Text>
+          최신 {latestDraw.drwNo || 1240}회차 당첨결과 <Text style={styles.bannerDate}>({latestDraw.drwNoDate?.replace(/-/g, '.') || '2026.09.05'})</Text>
         </Text>
 
         <View style={styles.ballsRow}>

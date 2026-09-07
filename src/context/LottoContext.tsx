@@ -1,3 +1,9 @@
+/**
+ * @file LottoContext.tsx
+ * @description 로또 전역 상태 관리 Context 및 Provider
+ * 최신 1240회차 당첨 정보, 퀀트 분석 엔진 상태, 사용자 필터 설정 및 저장된 번호 관리
+ */
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { LottoDraw, QuantGame, DeathZoneResult, QuantFilterPipelineStats, UserFilterSettings } from '../types/lotto';
 import { fetchLottoDraw, OFFLINE_DB } from '../services/lottoApi';
@@ -64,12 +70,12 @@ const LottoContext = createContext<LottoContextType | undefined>(undefined);
 
 export const LottoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [latestDraw, setLatestDraw] = useState<LottoDraw>({
-    drwNo: 1239,
-    drwNoDate: '2026-08-29',
-    numbers: [11, 13, 22, 32, 33, 36],
-    bnusNo: 8,
-    firstWinamnt: 2214789375,
-    firstPrzwnerCo: 13,
+    drwNo: 1240,
+    drwNoDate: '2026-09-05',
+    numbers: [11, 13, 19, 20, 31, 44],
+    bnusNo: 27,
+    firstWinamnt: 1791817758,
+    firstPrzwnerCo: 16,
   });
 
   const [isEngineRunning, setIsEngineRunning] = useState<boolean>(false);

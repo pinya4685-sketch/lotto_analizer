@@ -245,3 +245,4 @@ lotto_analizer/
 2. **버전 및 빌드 번호 증분**:
    - `version`: `"1.0.2"`
    - `versionCode`: `3` (Google Play Console에서 기등록 시도된 2번을 넘어 즉시 업로드 가능하도록 증분)
+   - **빌드 성공 결과물 (API 36 준수)**: [ACxTk8SCnXg-yPEJaob7E-r_sOV0wP7tM-mbBVHn9OY.aab](https://expo.dev/artifacts/eas/ACxTk8SCnXg-yPEJaob7E-r_sOV0wP7tM-mbBVHn9OY.aab)

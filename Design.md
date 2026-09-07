@@ -256,3 +256,4 @@ lotto_analizer/
    - `targetSdkVersion: 36`, `compileSdkVersion: 36`
    - `USE_TEST_ADS = false` (실제 상용 AdMob ID 활성화)
    - AAB (Android App Bundle) 프로덕션 스토어 규격
+   - **빌드 성공 결과물**: [YCsc4l4MS7mMv5-wEANCqYN_WWBIpFRpQP9fu9_PGS4.aab](https://expo.dev/artifacts/eas/YCsc4l4MS7mMv5-wEANCqYN_WWBIpFRpQP9fu9_PGS4.aab)

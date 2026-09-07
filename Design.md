@@ -190,3 +190,16 @@ lotto_analizer/
    - `FeatureModals.tsx`: 역대 당첨 이력 및 백업 모달 전체 1~1240회 동적 렌더링
    - `AiAnalysisBridgeModal.tsx`: 빅데이터 분석 회차 1240개 동기화
 
+---
+
+## 14. 매주 토요일 21시 자동 동기화 아키텍처 및 보안 체크
+1. **동행복권 공식 API 자동 동기화 (`lottoSyncService.ts`)**:
+   - **공식 엔드포인트**: `https://www.dhlottery.co.kr/lt645/selectPstLt645Info.do` (사설 블로그 URL 일체 배제)
+   - **트리거 주기**: 매주 토요일 21:00 이후 또는 앱 실행 시 다음 미반영 회차 자동 감지.
+   - **점진적 패치**: 현재 최신 회차 번호부터 다음 회차(`nextDraw = latest + 1`)를 조회하여, 추첨 완료 발표 시 즉시 `OFFLINE_DB` 메모리 및 `LottoContext`에 자동 unshift 주입.
+2. **보안 및 자격증명 관리**:
+   - 외부 블로그/사설 링크 완전 배제 확인.
+   - 구글 AdMob의 공개 App ID 외에 개인 비밀 키나 비공개 API Key 노출 0건 검증.
+   - `.gitignore`에 `.env*` 및 인증서/키 파일(`.key`, `.pem`, `.p8`, `.p12`, `.jks`) 패턴 차단 강화.
+3. **웹 호환성 최적화**:
+   - `AiAnalysisBridgeModal.tsx`: React Native Web 환경 대응을 위해 `useNativeDriver: Platform.OS !== 'web'` 조건부 처리 적용 (콘솔 경고 해소).

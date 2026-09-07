@@ -7,6 +7,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { LottoDraw, QuantGame, DeathZoneResult, QuantFilterPipelineStats, UserFilterSettings } from '../types/lotto';
 import { fetchLottoDraw, OFFLINE_DB } from '../services/lottoApi';
+import { syncLatestLottoDraws } from '../services/lottoSyncService';
 import { 
   calculateDeathZone, 
   generateCombinations, 
@@ -64,6 +65,7 @@ interface LottoContextType {
   runQuantAnalysis: () => void;
   saveNumberCombination: (nums: number[]) => void;
   deleteSavedNumberCombination: (index: number) => void;
+  refreshLatestDraw: () => Promise<void>;
 }
 
 const LottoContext = createContext<LottoContextType | undefined>(undefined);
@@ -116,10 +118,36 @@ export const LottoProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setSavedGames(prev => prev.filter((_, idx) => idx !== index));
   };
 
+  // ── [자동 동기화] 앱 실행 시 및 토요일 21시 이후 신규 회차 감지 ──
+  const refreshLatestDraw = async () => {
+    try {
+      const baseDraw = await fetchLottoDraw();
+      setLatestDraw(baseDraw);
+
+      // 공식 API로부터 다음 회차(latest + 1) 발표 여부 확인
+      const syncResult = await syncLatestLottoDraws(baseDraw.drwNo);
+      if (syncResult.updatedLatest && syncResult.newDraws.length > 0) {
+        // 새 회차들을 오프라인 DB 메모리에 병합
+        syncResult.newDraws.forEach(d => {
+          const exists = OFFLINE_DB.some(rec => rec.draw === d.drwNo);
+          if (!exists) {
+            OFFLINE_DB.unshift({
+              draw: d.drwNo,
+              nums: d.numbers,
+              bonus: d.bnusNo,
+            });
+          }
+        });
+        setLatestDraw(syncResult.updatedLatest);
+        console.log(`[LottoSync] 최신 ${syncResult.updatedLatest.drwNo}회차 자동 갱신 완료`);
+      }
+    } catch (e) {
+      console.warn('[LottoSync] 동기화 처리 중 대기:', e);
+    }
+  };
+
   useEffect(() => {
-    fetchLottoDraw().then((draw) => {
-      setLatestDraw(draw);
-    });
+    refreshLatestDraw();
   }, []);
 
   const runQuantAnalysis = () => {
@@ -164,6 +192,7 @@ export const LottoProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         runQuantAnalysis,
         saveNumberCombination,
         deleteSavedNumberCombination,
+        refreshLatestDraw,
       }}
     >
       {children}

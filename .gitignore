@@ -30,8 +30,13 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# local env & secret files
+.env*
+*.key
+*.pem
+*.p8
+*.p12
+*.jks
 
 # typescript
 *.tsbuildinfo

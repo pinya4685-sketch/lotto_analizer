@@ -11,7 +11,8 @@ import {
   Text, 
   StyleSheet, 
   Animated, 
-  ActivityIndicator 
+  ActivityIndicator,
+  Platform
 } from 'react-native';
 import { COLORS } from '../constants/theme';
 import { Bot, Cpu, Sparkles, Database, ShieldCheck, Zap } from 'lucide-react-native';
@@ -49,8 +50,8 @@ export const AiAnalysisBridgeModal: React.FC<AiAnalysisBridgeModalProps> = ({
       // 펄스 애니메이션
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.15, duration: 600, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1.0, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.15, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(pulseAnim, { toValue: 1.0, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
         ])
       ).start();
 
